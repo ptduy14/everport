@@ -11,5 +11,8 @@
   "dependencies": {
     "@everport/core": "*",
     "@everport/relay": "*"
+  },
+  "scripts": {
+    "build": "tsup"
   }
 }

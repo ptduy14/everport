@@ -20,6 +20,13 @@ export class NodeFileSystem implements FileSystem {
     await fsp.writeFile(path, data, 'utf8');
   }
 
+  async writeTextPrivate(path: string, data: string): Promise<void> {
+    await fsp.mkdir(dirname(path), { recursive: true });
+    await fsp.writeFile(path, data, { encoding: 'utf8', mode: 0o600 });
+    // writeFile only applies the mode to a file it creates; tighten one that already existed
+    await fsp.chmod(path, 0o600).catch(() => {});
+  }
+
   async writeTextExclusive(path: string, data: string): Promise<boolean> {
     await fsp.mkdir(dirname(path), { recursive: true });
     try {

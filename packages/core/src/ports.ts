@@ -29,6 +29,8 @@ export interface FileSystem {
   readText(path: string): Promise<string | null>;
   /** Creates parent directories as needed. */
   writeText(path: string, data: string): Promise<void>;
+  /** Like writeText, but readable by the owner only (mode 0600 where the OS has modes). For tokens and secrets. */
+  writeTextPrivate(path: string, data: string): Promise<void>;
   /** false when the file already exists. */
   writeTextExclusive(path: string, data: string): Promise<boolean>;
   appendText(path: string, data: string): Promise<void>;

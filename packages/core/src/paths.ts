@@ -33,7 +33,10 @@ export interface Layout {
   dataDir: string;
   logsDir: string;
   logFile: string;
+  /** What the agent's own logger writes. */
   agentLogFile: string;
+  /** stdout and stderr of the detached agent process (crashes, uncaught errors). A separate file: two writers on one file lose lines on Windows. */
+  agentOutFile: string;
   configFile: string;
   lockFile: string;
   /** The relay secret: its own file, never inside tunnels.json. */
@@ -52,6 +55,7 @@ export function createLayout(p: PathEnv, dataDirOverride?: string): Layout {
     logsDir,
     logFile: joinPath(platform, logsDir, 'everport.log'),
     agentLogFile: joinPath(platform, logsDir, 'agent.log'),
+    agentOutFile: joinPath(platform, logsDir, 'agent.out.log'),
     configFile: joinPath(platform, dataDir, 'tunnels.json'),
     lockFile: joinPath(platform, dataDir, 'everport.lock'),
     relaySecretFile: joinPath(platform, dataDir, 'relay-secret'),

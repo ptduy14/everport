@@ -26,6 +26,15 @@ export class FakeFs implements FileSystem {
     this.files.set(path, data);
   }
 
+  /** Paths written with writeTextPrivate. */
+  privatePaths = new Set<string>();
+
+  async writeTextPrivate(path: string, data: string): Promise<void> {
+    this.guard(path);
+    this.files.set(path, data);
+    this.privatePaths.add(path);
+  }
+
   async writeTextExclusive(path: string, data: string): Promise<boolean> {
     if (this.files.has(path)) return false;
     this.files.set(path, data);

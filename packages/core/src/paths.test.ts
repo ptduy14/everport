@@ -44,6 +44,8 @@ describe('createLayout', () => {
     expect(l.configFile).toBe('C:\\L\\everport\\tunnels.json');
     expect(l.lockFile).toBe('C:\\L\\everport\\everport.lock');
     expect(l.logFile).toBe('C:\\L\\everport\\logs\\everport.log');
+    expect(l.agentLogFile).toBe('C:\\L\\everport\\logs\\agent.log');
+    expect(l.agentOutFile).toBe('C:\\L\\everport\\logs\\agent.out.log');
     expect(l.relaySecretFile).toBe('C:\\L\\everport\\relay-secret');
     expect(l.agentStateFile).toBe('C:\\L\\everport\\agent.json');
   });
