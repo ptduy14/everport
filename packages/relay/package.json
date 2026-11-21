@@ -6,6 +6,11 @@
   "description": "Relay code shared by the Worker and the agent (frame codec, Durable Object)",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.2",
+    "ws": "^8.23.0"
   }
 }
