@@ -36,23 +36,30 @@ export class FakeRelay {
     this.server.on('upgrade', (req, socket) => void this.onUpgrade(req, socket));
   }
 
-  /** Starts listening on a free port and returns the base URL, e.g. http://127.0.0.1:41234 */
-  async start(): Promise<string> {
-    this.server.listen(0, '127.0.0.1');
+  /**
+   * Starts listening and returns the base URL, e.g. http://127.0.0.1:41234. Port 0 picks a free port;
+   * pass the old port to bring a stopped relay back at the same address.
+   */
+  async start(port = 0): Promise<string> {
+    this.server.listen(port, '127.0.0.1');
     await once(this.server, 'listening');
     return `http://127.0.0.1:${(this.server.address() as AddressInfo).port}`;
   }
 
+  /** Closes every connection and the listening port; resolves once the port is free again. */
   async stop(): Promise<void> {
     for (const ws of this.agents.keys()) ws.terminate();
     this.wss.close();
     this.server.closeAllConnections();
-    this.server.close();
+    await new Promise<void>((resolve) => this.server.close(() => resolve()));
   }
 
   get connectedAgents(): number {
     return [...this.agents.keys()].filter((ws) => ws.readyState === WebSocket.OPEN).length;
   }
+
+  /** How many agent connections were accepted since start, counting reconnects. */
+  totalConnections = 0;
 
   private currentAgent(): AgentSocket | null {
     let found: AgentSocket | null = null;
@@ -134,6 +141,7 @@ export class FakeRelay {
 
   private attach(ws: WebSocket): void {
     // One agent per tunnel: the old agent's requests fail, and it is told to exit.
+    this.totalConnections++;
     this.core.dropAllStreams('agent replaced');
     for (const old of this.agents.keys()) old.close(1000, REPLACED);
 

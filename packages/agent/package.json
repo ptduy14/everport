@@ -1,0 +1,15 @@
+{
+  "name": "@everport/agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The background agent: holds one WebSocket per tunnel and forwards relay requests to local services",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@everport/core": "*",
+    "@everport/relay": "*"
+  }
+}
