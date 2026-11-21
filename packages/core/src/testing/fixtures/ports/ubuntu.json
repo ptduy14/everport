@@ -1,0 +1,112 @@
+{
+  "platform": "linux",
+  "currentUser": "runner",
+  "workspaceFolders": ["/home/runner/work/_temp/ws"],
+  "listeners": [
+    {
+      "address": "127.0.0.54",
+      "port": 53,
+      "pid": 0
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 22,
+      "pid": 0
+    },
+    {
+      "address": "127.0.0.53%lo",
+      "port": 53,
+      "pid": 0
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 8001,
+      "pid": 2224
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 5173,
+      "pid": 2217
+    },
+    {
+      "address": "::",
+      "port": 22,
+      "pid": 0
+    },
+    {
+      "address": "*",
+      "port": 4000,
+      "pid": 2220
+    }
+  ],
+  "processes": [
+    {
+      "pid": 2224,
+      "ppid": 2222,
+      "user": "runner",
+      "name": "python3",
+      "exe": "python3.14",
+      "cmd": "python3 -m http.server 8001",
+      "cwd": "/home/runner/work/_temp/other-proj"
+    },
+    {
+      "pid": 2222,
+      "ppid": 1,
+      "user": "runner",
+      "name": "bash",
+      "exe": "bash",
+      "cmd": "/usr/bin/bash -e /home/runner/work/_temp/2ea8cd5e-9895-422b-82e2-2c4f17050646.sh",
+      "cwd": "/home/runner/work/_temp/other-proj"
+    },
+    {
+      "pid": 1,
+      "ppid": 0,
+      "user": "root",
+      "name": "init",
+      "exe": "",
+      "cmd": "/sbin/init"
+    },
+    {
+      "pid": 2217,
+      "ppid": 2216,
+      "user": "runner",
+      "name": "node",
+      "exe": "node",
+      "cmd": "node -e require(\"http\").createServer((q,s)=>s.end(\"web\")).listen(5173,\"127.0.0.1\")",
+      "cwd": "/home/runner/work/_temp/ws/web-app"
+    },
+    {
+      "pid": 2216,
+      "ppid": 1,
+      "user": "runner",
+      "name": "bash",
+      "exe": "bash",
+      "cmd": "/usr/bin/bash -e /home/runner/work/_temp/2ea8cd5e-9895-422b-82e2-2c4f17050646.sh",
+      "cwd": "/home/runner/work/_temp/ws/web-app"
+    },
+    {
+      "pid": 2220,
+      "ppid": 2219,
+      "user": "runner",
+      "name": "node",
+      "exe": "node",
+      "cmd": "node -e require(\"http\").createServer((q,s)=>s.end(\"api\")).listen(4000)",
+      "cwd": "/home/runner/work/_temp/ws/api"
+    },
+    {
+      "pid": 2219,
+      "ppid": 1,
+      "user": "runner",
+      "name": "bash",
+      "exe": "bash",
+      "cmd": "/usr/bin/bash -e /home/runner/work/_temp/2ea8cd5e-9895-422b-82e2-2c4f17050646.sh",
+      "cwd": "/home/runner/work/_temp/ws/api"
+    }
+  ],
+  "docker": {},
+  "http": {
+    "4000": 200,
+    "5173": 200,
+    "8001": 200
+  }
+}

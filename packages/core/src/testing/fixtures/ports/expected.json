@@ -1,0 +1,36 @@
+{
+  "windows": {
+    "workspace": [3301],
+    "docker": [8787],
+    "dev": [3000, 5500],
+    "other": [5432, 6379],
+    "hidden": [
+      53, 135, 139, 445, 5040, 5357, 7680, 9080, 20241, 20242, 20243, 20244, 49664, 49665, 49666, 49667, 49668, 49689
+    ],
+    "labels": { "3301": "api-server", "3000": "web-client", "8787": "proxy-dev", "5500": "VS Code", "6379": "WSL" }
+  },
+  "linux-wsl": {
+    "workspace": [4000, 5173],
+    "docker": [],
+    "dev": [8001],
+    "other": [6379],
+    "hidden": [53, 8787],
+    "labels": { "4000": "api", "5173": "web-app", "8001": "other-proj", "6379": "redis-server" }
+  },
+  "ubuntu": {
+    "workspace": [4000, 5173],
+    "docker": [],
+    "dev": [8001],
+    "other": [],
+    "hidden": [22, 53],
+    "labels": { "4000": "api", "5173": "web-app", "8001": "other-proj" }
+  },
+  "macos": {
+    "workspace": [4000, 5173],
+    "docker": [],
+    "dev": [8001],
+    "other": [],
+    "hidden": [],
+    "labels": { "4000": "api", "5173": "web-app", "8001": "other-proj" }
+  }
+}

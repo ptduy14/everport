@@ -1,0 +1,458 @@
+{
+  "platform": "win32",
+  "currentUser": "PC",
+  "workspaceFolders": ["D:\\work\\api-server"],
+  "listeners": [
+    {
+      "address": "0.0.0.0",
+      "port": 135,
+      "pid": 1764
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 445,
+      "pid": 4
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 3000,
+      "pid": 19880
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 3301,
+      "pid": 30180
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 5040,
+      "pid": 8384
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 5357,
+      "pid": 4
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 5432,
+      "pid": 7928
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 5500,
+      "pid": 6780
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 7680,
+      "pid": 16396
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 8787,
+      "pid": 29512
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 49664,
+      "pid": 1460
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 49665,
+      "pid": 1276
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 49666,
+      "pid": 2276
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 49667,
+      "pid": 3432
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 49668,
+      "pid": 4332
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 49689,
+      "pid": 1364
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 6379,
+      "pid": 26784
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 9080,
+      "pid": 5424
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 20241,
+      "pid": 15808
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 20242,
+      "pid": 15044
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 20243,
+      "pid": 30028
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 20244,
+      "pid": 12988
+    },
+    {
+      "address": "127.0.2.2",
+      "port": 53,
+      "pid": 5052
+    },
+    {
+      "address": "127.0.2.3",
+      "port": 53,
+      "pid": 5052
+    },
+    {
+      "address": "172.31.176.1",
+      "port": 139,
+      "pid": 4
+    },
+    {
+      "address": "192.168.1.25",
+      "port": 139,
+      "pid": 4
+    },
+    {
+      "address": "::",
+      "port": 135,
+      "pid": 1764
+    },
+    {
+      "address": "::",
+      "port": 445,
+      "pid": 4
+    },
+    {
+      "address": "::",
+      "port": 3301,
+      "pid": 30180
+    },
+    {
+      "address": "::",
+      "port": 5357,
+      "pid": 4
+    },
+    {
+      "address": "::",
+      "port": 5432,
+      "pid": 7928
+    },
+    {
+      "address": "::",
+      "port": 7680,
+      "pid": 16396
+    },
+    {
+      "address": "::",
+      "port": 8787,
+      "pid": 29512
+    },
+    {
+      "address": "::",
+      "port": 49664,
+      "pid": 1460
+    },
+    {
+      "address": "::",
+      "port": 49665,
+      "pid": 1276
+    },
+    {
+      "address": "::",
+      "port": 49666,
+      "pid": 2276
+    },
+    {
+      "address": "::",
+      "port": 49667,
+      "pid": 3432
+    },
+    {
+      "address": "::",
+      "port": 49668,
+      "pid": 4332
+    },
+    {
+      "address": "::",
+      "port": 49689,
+      "pid": 1364
+    },
+    {
+      "address": "::1",
+      "port": 8787,
+      "pid": 26784
+    }
+  ],
+  "processes": [
+    {
+      "pid": 1764,
+      "ppid": 1364,
+      "name": "svchost.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 1364,
+      "ppid": 1276,
+      "name": "services.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 1276,
+      "ppid": 736,
+      "name": "wininit.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 4,
+      "ppid": 0,
+      "name": "System",
+      "cmd": ""
+    },
+    {
+      "pid": 0,
+      "ppid": 0,
+      "name": "System Idle Process",
+      "cmd": ""
+    },
+    {
+      "pid": 19880,
+      "ppid": 15544,
+      "name": "node.exe",
+      "cmd": "node D:\\work\\web-client\\node_modules\\@craco\\craco\\dist\\scripts\\start.js"
+    },
+    {
+      "pid": 15544,
+      "ppid": 18668,
+      "name": "node.exe",
+      "cmd": "\"node\"   \"D:\\work\\web-client\\node_modules\\.bin\\\\..\\@craco\\craco\\dist\\bin\\craco.js\" start"
+    },
+    {
+      "pid": 18668,
+      "ppid": 28492,
+      "name": "cmd.exe",
+      "cmd": "C:\\Windows\\system32\\cmd.exe /d /s /c craco start"
+    },
+    {
+      "pid": 28492,
+      "ppid": 27740,
+      "name": "node.exe",
+      "cmd": "\"C:\\Users\\dev\\AppData\\Local\\fnm_multishells\\10468_1794973478948\\node.exe\" C:\\Users\\dev\\AppData\\Local\\fnm_multishells\\10468_1794973478948/node_modules/npm/bin/npm-cli.js run start"
+    },
+    {
+      "pid": 27740,
+      "ppid": 2580,
+      "name": "powershell.exe",
+      "cmd": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    },
+    {
+      "pid": 2580,
+      "ppid": 27580,
+      "name": "WindowsTerminal.exe",
+      "cmd": "\"C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.25.3131.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe\" "
+    },
+    {
+      "pid": 27580,
+      "ppid": 10708,
+      "name": "explorer.exe",
+      "cmd": "C:\\Windows\\Explorer.EXE"
+    },
+    {
+      "pid": 30180,
+      "ppid": 22732,
+      "name": "node.exe",
+      "cmd": "\"C:\\Program Files\\nodejs\\node.exe\"    --enable-source-maps D:\\work\\api-server\\dist\\src\\main"
+    },
+    {
+      "pid": 22732,
+      "ppid": 19480,
+      "name": "cmd.exe",
+      "cmd": "C:\\Windows\\system32\\cmd.exe /d /s /c \"node --enable-source-maps D:\\work\\api-server\\dist\\src\\main\""
+    },
+    {
+      "pid": 19480,
+      "ppid": 22000,
+      "name": "node.exe",
+      "cmd": "\"C:\\Program Files\\nodejs\\node.exe\"    \"D:\\work\\api-server\\node_modules\\.bin\\\\..\\@nestjs\\cli\\bin\\nest.js\" start --watch"
+    },
+    {
+      "pid": 22000,
+      "ppid": 8104,
+      "name": "cmd.exe",
+      "cmd": "C:\\Windows\\system32\\cmd.exe /d /s /c \"nest start --watch\""
+    },
+    {
+      "pid": 8104,
+      "ppid": 28964,
+      "name": "node.exe",
+      "cmd": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\dev\\AppData\\Roaming\\npm/node_modules/yarn/bin/yarn.js start:dev"
+    },
+    {
+      "pid": 28964,
+      "ppid": 2580,
+      "name": "powershell.exe",
+      "cmd": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    },
+    {
+      "pid": 8384,
+      "ppid": 1364,
+      "name": "svchost.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 7928,
+      "ppid": 5636,
+      "name": "postgres.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 5636,
+      "ppid": 1364,
+      "name": "pg_ctl.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 6780,
+      "ppid": 14332,
+      "name": "Code.exe",
+      "cmd": "\"C:\\Users\\dev\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe\" --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --dns-result-order=ipv4first --experimental-network-inspection --inspect-port=0 --video-capture-use-gpu-memory-buffer --user-data-dir=\"C:\\ …"
+    },
+    {
+      "pid": 14332,
+      "ppid": 27580,
+      "name": "Code.exe",
+      "cmd": "\"C:\\Users\\dev\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe\" "
+    },
+    {
+      "pid": 16396,
+      "ppid": 1364,
+      "name": "svchost.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 29512,
+      "ppid": 6420,
+      "name": "com.docker.backend.exe",
+      "cmd": "C:\\Users\\dev\\AppData\\Local\\Programs\\DockerDesktop\\resources\\com.docker.backend.exe services"
+    },
+    {
+      "pid": 6420,
+      "ppid": 28744,
+      "name": "com.docker.backend.exe",
+      "cmd": "\"C:\\Users\\dev\\AppData\\Local\\Programs\\DockerDesktop\\resources\\com.docker.backend.exe\""
+    },
+    {
+      "pid": 28744,
+      "ppid": 27580,
+      "name": "Docker Desktop.exe",
+      "cmd": "\"C:\\Users\\dev\\AppData\\Local\\Programs\\DockerDesktop\\Docker Desktop.exe\" "
+    },
+    {
+      "pid": 1460,
+      "ppid": 1276,
+      "name": "lsass.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 2276,
+      "ppid": 1364,
+      "name": "svchost.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 3432,
+      "ppid": 1364,
+      "name": "svchost.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 4332,
+      "ppid": 1364,
+      "name": "spoolsv.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 26784,
+      "ppid": 5876,
+      "name": "wslrelay.exe",
+      "cmd": " --mode 2 --vm-id {00000000-0000-0000-0000-000000000000} --handle 1612"
+    },
+    {
+      "pid": 5876,
+      "ppid": 1364,
+      "name": "wslservice.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 5424,
+      "ppid": 1364,
+      "name": "NahimicService.exe",
+      "cmd": ""
+    },
+    {
+      "pid": 15808,
+      "ppid": 15104,
+      "name": "cloudflared.exe",
+      "cmd": "\"C:\\Program Files (x86)\\cloudflared\\cloudflared.exe\" tunnel --no-autoupdate --url http://localhost:5500 "
+    },
+    {
+      "pid": 15044,
+      "ppid": 15104,
+      "name": "cloudflared.exe",
+      "cmd": "\"C:\\Program Files (x86)\\cloudflared\\cloudflared.exe\" tunnel --no-autoupdate --url http://localhost:8787 "
+    },
+    {
+      "pid": 30028,
+      "ppid": 15104,
+      "name": "cloudflared.exe",
+      "cmd": "\"C:\\Program Files (x86)\\cloudflared\\cloudflared.exe\" tunnel --no-autoupdate --url http://localhost:3000 "
+    },
+    {
+      "pid": 12988,
+      "ppid": 15104,
+      "name": "cloudflared.exe",
+      "cmd": "\"C:\\Program Files (x86)\\cloudflared\\cloudflared.exe\" tunnel --no-autoupdate --url http://localhost:3301 "
+    },
+    {
+      "pid": 5052,
+      "ppid": 1364,
+      "name": "warp-svc.exe",
+      "cmd": ""
+    }
+  ],
+  "docker": {
+    "8787": {
+      "name": "proxy-dev",
+      "project": "proxy-svc",
+      "dir": "D:\\work\\proxy-svc",
+      "image": "proxy:latest"
+    }
+  },
+  "http": {
+    "3000": 200,
+    "3301": 404,
+    "5432": 0,
+    "5500": 200,
+    "8787": 404
+  }
+}

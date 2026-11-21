@@ -1,0 +1,89 @@
+{
+  "platform": "darwin",
+  "currentUser": "runner",
+  "workspaceFolders": ["/Users/runner/work/_temp/ws"],
+  "listeners": [
+    {
+      "address": "127.0.0.1",
+      "port": 5173,
+      "pid": 1892
+    },
+    {
+      "address": "*",
+      "port": 4000,
+      "pid": 1894
+    },
+    {
+      "address": "*",
+      "port": 8001,
+      "pid": 1897
+    }
+  ],
+  "processes": [
+    {
+      "pid": 1892,
+      "ppid": 1890,
+      "user": "runner",
+      "name": "node",
+      "exe": "",
+      "cmd": "node -e require(\"http\").createServer((q,s)=>s.end(\"web\")).listen(5173,\"127.0.0.1\")",
+      "cwd": "/Users/runner/work/_temp/ws/web-app"
+    },
+    {
+      "pid": 1890,
+      "ppid": 1,
+      "user": "runner",
+      "name": "bash",
+      "exe": "",
+      "cmd": "/bin/bash -e /Users/runner/work/_temp/68791de8-45db-40cd-afd9-208cce760bee.sh"
+    },
+    {
+      "pid": 1,
+      "ppid": 0,
+      "user": "root",
+      "name": "launchd",
+      "exe": "",
+      "cmd": "/sbin/launchd"
+    },
+    {
+      "pid": 1894,
+      "ppid": 1893,
+      "user": "runner",
+      "name": "node",
+      "exe": "",
+      "cmd": "node -e require(\"http\").createServer((q,s)=>s.end(\"api\")).listen(4000)",
+      "cwd": "/Users/runner/work/_temp/ws/api"
+    },
+    {
+      "pid": 1893,
+      "ppid": 1,
+      "user": "runner",
+      "name": "bash",
+      "exe": "",
+      "cmd": "/bin/bash -e /Users/runner/work/_temp/68791de8-45db-40cd-afd9-208cce760bee.sh"
+    },
+    {
+      "pid": 1897,
+      "ppid": 1896,
+      "user": "runner",
+      "name": "Python",
+      "exe": "",
+      "cmd": "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python -m http.server 8001",
+      "cwd": "/Users/runner/work/_temp/other-proj"
+    },
+    {
+      "pid": 1896,
+      "ppid": 1,
+      "user": "runner",
+      "name": "bash",
+      "exe": "",
+      "cmd": "/bin/bash -e /Users/runner/work/_temp/68791de8-45db-40cd-afd9-208cce760bee.sh"
+    }
+  ],
+  "docker": {},
+  "http": {
+    "4000": 200,
+    "5173": 200,
+    "8001": 200
+  }
+}

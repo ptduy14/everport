@@ -1,0 +1,136 @@
+{
+  "platform": "linux",
+  "currentUser": "dev",
+  "workspaceFolders": ["/home/dev/ep-demo"],
+  "listeners": [
+    {
+      "address": "10.255.255.254",
+      "port": 53,
+      "pid": 0
+    },
+    {
+      "address": "127.0.0.53%lo",
+      "port": 53,
+      "pid": 0
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 6379,
+      "pid": 434
+    },
+    {
+      "address": "0.0.0.0",
+      "port": 8001,
+      "pid": 1192
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 5173,
+      "pid": 1190
+    },
+    {
+      "address": "*",
+      "port": 8787,
+      "pid": 0
+    },
+    {
+      "address": "*",
+      "port": 4000,
+      "pid": 1191
+    }
+  ],
+  "processes": [
+    {
+      "pid": 434,
+      "ppid": 332,
+      "user": "dev",
+      "name": "redis-server",
+      "exe": "redis-check-rdb",
+      "cmd": "redis-server 127.0.0.1:6379",
+      "cwd": "/home/dev/redis-dev/6379"
+    },
+    {
+      "pid": 332,
+      "ppid": 1,
+      "user": "root",
+      "name": "init",
+      "exe": "",
+      "cmd": "/init"
+    },
+    {
+      "pid": 1,
+      "ppid": 0,
+      "user": "root",
+      "name": "init",
+      "exe": "",
+      "cmd": "/sbin/init"
+    },
+    {
+      "pid": 1192,
+      "ppid": 1187,
+      "user": "dev",
+      "name": "python3",
+      "exe": "python3.10",
+      "cmd": "python3 -m http.server 8001",
+      "cwd": "/home/dev/other-proj"
+    },
+    {
+      "pid": 1187,
+      "ppid": 1182,
+      "user": "dev",
+      "name": "bash",
+      "exe": "bash",
+      "cmd": "bash /mnt/c/Users/PC/AppData/Local/Temp/claude/f4b7a5ad227d9abe/a99e3e49-83d6-4ce5-83b7-303406bbe79e/scratchpad/wsl/ports.sh",
+      "cwd": "/home/dev"
+    },
+    {
+      "pid": 1182,
+      "ppid": 1181,
+      "user": "root",
+      "name": "init",
+      "exe": "",
+      "cmd": "/init"
+    },
+    {
+      "pid": 1181,
+      "ppid": 2,
+      "user": "root",
+      "name": "init",
+      "exe": "",
+      "cmd": "/init"
+    },
+    {
+      "pid": 2,
+      "ppid": 1,
+      "user": "root",
+      "name": "init",
+      "exe": "",
+      "cmd": "/init"
+    },
+    {
+      "pid": 1190,
+      "ppid": 1187,
+      "user": "dev",
+      "name": "node",
+      "exe": "node",
+      "cmd": "node -e require(\"http\").createServer((q,s)=>s.end(\"web\")).listen(5173,\"127.0.0.1\")",
+      "cwd": "/home/dev/ep-demo/web-app"
+    },
+    {
+      "pid": 1191,
+      "ppid": 1187,
+      "user": "dev",
+      "name": "node",
+      "exe": "node",
+      "cmd": "node -e require(\"http\").createServer((q,s)=>s.end(\"api\")).listen(4000)",
+      "cwd": "/home/dev/ep-demo/api"
+    }
+  ],
+  "docker": {},
+  "http": {
+    "4000": 200,
+    "5173": 200,
+    "6379": 0,
+    "8001": 200
+  }
+}
