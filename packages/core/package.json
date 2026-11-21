@@ -1,0 +1,11 @@
+{
+  "name": "@everport/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "UI-agnostic tunnel management over a Cloudflare relay",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

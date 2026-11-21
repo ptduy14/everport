@@ -1,0 +1,29 @@
+{
+  "name": "everport-monorepo",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc -p packages/core && tsc -p packages/relay && tsc -p packages/cli",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^10.0.0",
+    "prettier": "^3.0.0",
+    "tsup": "^9.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "everport",
+  "version": "0.0.0",
+  "description": "Stable public URLs for your local services, on a Cloudflare relay in your own account",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ptduy14/everport.git"
+  },
+  "homepage": "https://github.com/ptduy14/everport#readme",
+  "bugs": {
+    "url": "https://github.com/ptduy14/everport/issues"
+  },
+  "author": "ptduy14",
+  "type": "module",
+  "bin": {
+    "everport": "dist/everport.js",
+    "ep": "dist/everport.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@everport/core": "*"
+  }
+}

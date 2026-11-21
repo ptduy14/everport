@@ -1,0 +1,11 @@
+{
+  "name": "@everport/relay",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Relay code shared by the Worker and the agent (frame codec, Durable Object)",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

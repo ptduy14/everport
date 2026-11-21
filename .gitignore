@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dist-test/
+.vscode-test/
+.wrangler/
+*.log
+*.vsix
+*.tgz
+.env
+.env.*
+# Local tunnel state and relay secret are never committed
+tunnels.json
+relay-secret
