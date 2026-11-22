@@ -39,22 +39,25 @@ Open the printed address: it serves whatever runs on `http://127.0.0.1:3000`. Af
 
 ## Why Everport
 
-- **Fixed address per service.** Run several at once, like `https://api-everport.<you>.workers.dev`. No domain needed.
-- **No warning page.** Browsers can load scripts and iframes from it as from any other site.
-- **Keeps running when you close the terminal or VS Code.** A small background agent holds the tunnels up.
-- **Quick to come back.** `down` then `up` restores every tunnel at the same address. If a preview is lost on Cloudflare, `up` recreates it at the same address.
-- **Your account, your quota, your data.** Nothing to sign up for besides Cloudflare. No telemetry is sent.
+Other free tunnels each get in the way of this job somewhere: the address changes, only one is free, a warning page sits in front of your content, or streaming breaks. Here is what Everport does differently, and what we measured.
+
+- **Several fixed addresses, free, no domain.** Like `https://api-everport.<you>.workers.dev`. Each keeps its address across restarts, including after `down` and `up`.
+- **No warning page.** In our test, scripts and iframes loaded from another site as from any other site. The same test against zrok's free plan returned an HTML warning page instead of the JavaScript.
+- **Streaming works.** Server-sent events arrived tick by tick: 15 ticks over a 45 s stream, none cut. Behind Cloudflare Quick Tunnel the same kind of stream arrived all at once at the end.
+- **Quick to come back.** `down` then `up` took about 1 s in our runs (0.6 s to 1.3 s on GitHub Actions, 1.2 s on Windows; one run each, so treat it as a rough idea). If a preview is lost on Cloudflare, `up` recreates it at the same address.
+- **Keeps running after you close VS Code or the terminal.** A small background agent holds the tunnels up. In our runs tunnels kept answering after VS Code exited.
+- **Your account, your quota, your data.** Nothing to sign up for besides Cloudflare, and no telemetry is sent.
 - **CLI and VS Code extension** with the same actions: add, start, stop, health check, doctor.
 
-|                         | Fixed URL, free         | Worth knowing                                                     |
-| ----------------------- | ----------------------- | ----------------------------------------------------------------- |
-| **Everport**            | Yes, several, no domain | Needs a Cloudflare account and Node.js; built on a beta feature   |
-| ngrok (free plan)       | One static domain       | A browser warning page can appear in front of content             |
-| Cloudflare Quick Tunnel | No, new URL every run   | In our test, server-sent events arrived all at once at the end    |
-| zrok.io (free plan)     | Yes                     | A browser warning page broke scripts and iframes from other sites |
-| VS Code port forwarding | Not in practice         | Stops when VS Code closes                                         |
+|                         | Several fixed URLs, free       | Warning page in front of content                | Streaming (SSE)                         |
+| ----------------------- | ------------------------------ | ----------------------------------------------- | --------------------------------------- |
+| **Everport**            | Yes, no domain                 | None                                            | Tick by tick                            |
+| ngrok (free plan)       | One dev domain (docs)          | Yes, visitors click through (docs)              | Not checked                             |
+| Cloudflare Quick Tunnel | No, a new URL every run (docs) | None                                            | Held back, arrives all at the end       |
+| zrok.io (free plan)     | Yes                            | Yes, broke scripts and iframes from other sites | Tick by tick (measured behind a Worker) |
+| Tailscale Funnel        | Up to 3 public ports (docs)    | Not checked                                     | Not checked                             |
 
-<sub>From our own tests and the vendors' documentation, as of November 2026. Products change; check before you decide.</sub>
+<sub>Cells without a note come from our own runs in November 2026 (one run each, zrok with an older client). "(docs)" means the vendor's documentation, not our test. "Not checked" means we have not looked. Products change; check before you decide. Everport's own limits are under [Good to know](#good-to-know).</sub>
 
 ## How it works
 
