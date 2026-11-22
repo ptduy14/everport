@@ -29,7 +29,7 @@ local service
 <!-- TODO(diagram): replace with a drawn sequence diagram (request down, response streamed back) -->
 
 - **No Everport server.** Everything runs in your account. Nothing is shared between users.
-- **One tunnel = one preview = one hostname = one Durable Object.** A _preview_ is a named copy of a Worker with its own `workers.dev` hostname, variables, secrets and Durable Object namespace (a Cloudflare feature, in open beta).
+- **One tunnel = one preview = one hostname = one Durable Object.** A _preview_ is a named copy of a Worker with its own `workers.dev` hostname, variables, secrets and Durable Object namespace (a recent Cloudflare feature that Cloudflare can still change).
 - The computer only calls out: no port is opened.
 
 ## Packages
@@ -127,7 +127,7 @@ Unit tests run with fakes and need no network. The agent is tested over real soc
 - **Your account, not a shared service.** A shared relay would make Everport an operated service: shared quota, an open proxy to abuse, privacy and terms-of-service questions, a single point of failure.
 - **One preview per tunnel, not one Worker routing by path.** A preview has its own hostname, so apps with absolute paths such as `<script src="/app.js">` work. Path routing breaks silently for them.
 - **No automatic fallback.** If Previews change, tunnels may stop. Everport does not quietly switch strategy, because that would change your URLs; the planned fallback is explicit and announced ([docs/contingency.md](contingency.md)).
-- **A pinned wrangler through `npx`.** Previews are in beta and the tool moves; pinning keeps behaviour predictable. An installed copy was slightly faster but sometimes missing a binary.
+- **A pinned wrangler through `npx`.** Previews are a recent Cloudflare feature and the tool moves; pinning keeps behaviour predictable. An installed copy was slightly faster but sometimes missing a binary.
 - **A background agent, not an in-editor process.** That is what lets tunnels outlive the editor.
 
 ## Known limits

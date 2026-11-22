@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1000 252" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="everport-flow-title everport-flow-desc" id="everport-flow-root">
         <title id="everport-flow-title">Everport request path</title>
-        <desc id="everport-flow-desc">A public request reaches a Worker preview in your Cloudflare account, then a Durable Object that holds a WebSocket opened outbound by the Everport agent, which calls your local service.</desc>
+        <desc id="everport-flow-desc">A public request reaches a Worker preview in your Cloudflare account, then a Durable Object, then travels down a WebSocket that the Everport agent opened from your computer, and the agent calls your local service. The response returns the same way.</desc>
         <defs>
       <style>#everport-flow-root { --color-paper:   #f5f5f5;   
       --color-ink:     #2d3142;   
@@ -17,6 +17,7 @@
 }</style>
           <marker id="everport-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
           <marker id="everport-flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+          <marker id="everport-flow-arrow-accent-both" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
           <marker id="everport-flow-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
         </defs>
 
@@ -33,7 +34,7 @@
         <!-- Arrows first -->
         <line x1="160" y1="104" x2="240" y2="104" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#everport-flow-arrow-link)"/>
         <line x1="360" y1="104" x2="424" y2="104" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#everport-flow-arrow)"/>
-        <line x1="672" y1="104" x2="544" y2="104" stroke="#bf4520" stroke-width="1.4" marker-end="url(#everport-flow-arrow-accent)"/>
+        <line x1="544" y1="104" x2="672" y2="104" stroke="#bf4520" stroke-width="1.4" marker-start="url(#everport-flow-arrow-accent-both)" marker-end="url(#everport-flow-arrow-accent-both)"/>
         <line x1="792" y1="104" x2="848" y2="104" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#everport-flow-arrow)"/>
 
         <!-- Arrow labels -->
@@ -41,11 +42,13 @@
         <text x="200" y="94" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">HTTPS</text>
         <rect x="372" y="84" width="40" height="12" rx="2" fill="#f5f5f5"/>
         <text x="392" y="94" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ROUTE</text>
-        <rect x="568" y="84" width="80" height="12" rx="2" fill="#f5f5f5"/>
-        <text x="608" y="94" fill="#bf4520" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">WS · OUTBOUND</text>
+        <rect x="580" y="84" width="56" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="608" y="94" fill="#bf4520" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">WEBSOCKET</text>
         <rect x="804" y="84" width="32" height="12" rx="2" fill="#f5f5f5"/>
         <text x="820" y="94" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">HTTP</text>
 
+        <text x="608" y="128" fill="#bf4520" font-size="12" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="middle">opened from</text>
+        <text x="608" y="142" fill="#bf4520" font-size="12" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="middle">your computer</text>
         <!-- Node: Caller -->
         <rect x="40" y="72" width="120" height="64" rx="6" fill="#f5f5f5"/>
         <rect x="40" y="72" width="120" height="64" rx="6" fill="#4f5d75" stroke="#5a6580" stroke-width="1" fill-opacity="0.10"/>
@@ -97,7 +100,7 @@
         <line x1="500" y1="225" x2="528" y2="225" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#everport-flow-arrow-link)"/>
         <text x="536" y="228" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Public request</text>
         <line x1="660" y1="225" x2="688" y2="225" stroke="#bf4520" stroke-width="1.4" marker-end="url(#everport-flow-arrow-accent)"/>
-        <text x="696" y="228" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Opened from your computer</text>
+        <text x="696" y="228" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Kept open from your computer</text>
         <line x1="860" y1="225" x2="888" y2="225" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#everport-flow-arrow)"/>
         <text x="896" y="228" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Relayed call</text>
       </svg>

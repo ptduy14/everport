@@ -1,6 +1,6 @@
 # If Cloudflare changes Previews
 
-Everport's tunnels are **Workers Previews**, a Cloudflare feature in open beta. This page says what would tell you something is wrong, what Everport does and does not do about it, and the plan for moving away from Previews. Read it before you register an Everport URL somewhere you cannot easily edit.
+Everport's tunnels are **Workers Previews**, a recent Cloudflare feature that Cloudflare can still change. This page says what would tell you something is wrong, what Everport does and does not do about it, and the plan for moving away from Previews. Read it before you register an Everport URL somewhere you cannot easily edit.
 
 ## Signs that Previews changed
 
