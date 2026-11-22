@@ -7,7 +7,7 @@
   "categories": [
     "Other"
   ],
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "license": "MIT",
   "repository": {
@@ -327,6 +327,5 @@
     "@types/vscode": "~1.90.0",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.1.1"
-  },
-  "preview": true
+  }
 }
