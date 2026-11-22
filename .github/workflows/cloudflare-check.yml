@@ -31,7 +31,7 @@ jobs:
         run: |
           echo "token type prefix: ${CLOUDFLARE_API_TOKEN:0:5}, length: ${#CLOUDFLARE_API_TOKEN}, account id length: ${#CLOUDFLARE_ACCOUNT_ID}"
           show() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);console.log(JSON.stringify({success:j.success,status:j.result&&j.result.status,errors:j.errors}))}catch{console.log("not JSON: "+s.slice(0,200))}})'; }
-          for url in "user/tokens/verify" "accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify" "accounts"; do
+          for url in "user/tokens/verify" "accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify" "accounts" "user" "memberships" "accounts/$CLOUDFLARE_ACCOUNT_ID" "accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts"; do
             echo "GET /$url (token value hidden)"
             curl -sS -m 30 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/$url" | show
           done
