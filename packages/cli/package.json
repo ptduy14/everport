@@ -24,6 +24,21 @@
     "node": ">=22"
   },
   "devDependencies": {
-    "@everport/core": "*"
+    "@everport/agent": "*",
+    "@everport/core": "*",
+    "@everport/relay": "*",
+    "commander": "^15.1.0"
+  },
+  "keywords": [
+    "tunnel",
+    "public-url",
+    "webhook",
+    "localhost",
+    "cloudflare",
+    "oauth",
+    "dev-tools"
+  ],
+  "scripts": {
+    "build": "tsup"
   }
 }
