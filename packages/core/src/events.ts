@@ -3,6 +3,7 @@ export type EverportEventType =
   | 'agent:ready'
   | 'agent:stopping'
   | 'agent:stopped'
+  | 'relay:setup'
   | 'tunnel:creating'
   | 'tunnel:active'
   | 'tunnel:ready'

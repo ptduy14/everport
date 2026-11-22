@@ -99,6 +99,22 @@ describe('add', () => {
     expect(seen).toEqual(expect.arrayContaining(['tunnel:creating', 'tunnel:ready']));
   });
 
+  it('tells the first tunnel that it also sets up the relay and that this can take a while, and only the first', async () => {
+    const { everport, events } = setup();
+    const heard: { type: string; message: string }[] = [];
+    events.on((e) => heard.push(e));
+    await everport.add({ target: '3000', label: 'fe' });
+    expect(heard.find((e) => e.type === 'relay:setup')?.message).toMatch(/first tunnel.*10 to 20 seconds.*minute/);
+    expect(heard.find((e) => e.type === 'tunnel:creating')?.message).toBe(
+      'Creating fe and the relay on Cloudflare (10 to 20 seconds, it varies)',
+    );
+
+    heard.length = 0;
+    await everport.add({ target: '3301', label: 'be' });
+    expect(heard.some((e) => e.type === 'relay:setup')).toBe(false);
+    expect(heard.find((e) => e.type === 'tunnel:creating')?.message).toBe('Creating be on Cloudflare');
+  });
+
   it('takes the label from the target when none is given', async () => {
     const { everport } = setup();
     expect(await everport.add({ target: '3000' })).toMatchObject({ label: '127.0.0.1:3000', name: '127-0-0-1-3000' });

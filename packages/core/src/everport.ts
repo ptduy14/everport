@@ -75,6 +75,13 @@ export interface EverportDeps {
   pollMs?: number;
 }
 
+/**
+ * Said before the first tunnel is made. Measured (one run each, from Vietnam to Cloudflare, Windows): about 17 to 24 s
+ * with wrangler already downloaded (about 10 s in a later manual try), about 70 s when it must be downloaded first; on GitHub Actions runners 5 to 6 s.
+ */
+const FIRST_TUNNEL_NOTE =
+  'This is your first tunnel, so Everport also sets up the relay in your Cloudflare account. It can take 10 to 20 seconds (it varies), and a minute or more if wrangler has to be downloaded first.';
+
 type TunnelError = NonNullable<TunnelStatus['error']>;
 
 const toTunnelError = (e: unknown): TunnelError => {
@@ -138,13 +145,20 @@ export class Everport {
           'Pick another --label.',
         );
       }
+      const first = config.relay === null;
+      if (first) this.d.events.emit('relay:setup', FIRST_TUNNEL_NOTE);
       if (!(await this.d.deployer.isLoggedIn())) {
         throw new EverportError('NOT_LOGGED_IN', 'You are not logged in to Cloudflare', 'Run "everport login".');
       }
 
       const workerName = config.relay?.workerName ?? this.workerName;
       const secret = await loadOrCreateRelaySecret(this.d.fs, this.d.layout, this.randomHex);
-      this.d.events.emit('tunnel:creating', `Creating ${label} on Cloudflare`);
+      this.d.events.emit(
+        'tunnel:creating',
+        first
+          ? `Creating ${label} and the relay on Cloudflare (10 to 20 seconds, it varies)`
+          : `Creating ${label} on Cloudflare`,
+      );
       const created = await this.d.deployer.createTunnel({
         workerName,
         secret,

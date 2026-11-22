@@ -48,6 +48,10 @@ Everport talks to Cloudflare through [wrangler](https://developers.cloudflare.co
 - **Agent control API.** It listens on `127.0.0.1` only and every call needs a token that is generated each time the agent starts.
 - **Public URLs.** Anyone who knows a URL can reach the service behind it.
 
+## The first tunnel takes longer
+
+The first `everport add` also creates the relay Worker in your Cloudflare account, so it takes longer than the ones after it. Everport says so while it works. In our measurements (one run each): about 17 to 24 seconds from Vietnam on Windows (about 10 seconds in a later manual try), about 70 seconds when wrangler first had to be downloaded, and 5 to 6 seconds on GitHub Actions runners, which are close to Cloudflare. Your time depends on your network. Later tunnels do not create the relay again, so they are quicker.
+
 ## Agent lifecycle
 
 `everport up` starts one background agent, detached from your terminal and editor, and `everport down` stops it. Closing the terminal or VS Code does not stop it. Nothing starts the agent when your computer boots: run `everport up` again (or turn on `everport.startOnOpen` in VS Code). Tunnel addresses do not change in between.
