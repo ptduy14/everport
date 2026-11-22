@@ -1,11 +1,12 @@
 {
   "name": "everport",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Stable public URLs for your local services, on a Cloudflare relay in your own account",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ptduy14/everport.git"
+    "url": "git+https://github.com/ptduy14/everport.git",
+    "directory": "packages/cli"
   },
   "homepage": "https://github.com/ptduy14/everport#readme",
   "bugs": {
@@ -39,6 +40,7 @@
     "dev-tools"
   ],
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "prepublishOnly": "node ../../scripts/sync-package-readme.mjs && npm run build"
   }
 }

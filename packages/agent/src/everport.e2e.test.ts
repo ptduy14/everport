@@ -105,7 +105,7 @@ describe.skipIf(!enabled)(`Everport on Cloudflare with the real agent (Worker ${
     measure('first add, from the command to an active tunnel', Date.now() - started);
     expect(status).toMatchObject({ label: 'fe', state: 'active', enabled: true });
     fe.url = status.url;
-    expect(status.url).toBe(`https://fe-${WORKER}.example.workers.dev`);
+    expect(status.url).toMatch(new RegExp(String.raw`^https://fe-${WORKER}\.[a-z0-9-]+\.workers\.dev$`));
     expect(await ask(fe.url)).toBe('hello from everport');
     measure('first request', Date.now() - started);
   }, 240_000);
