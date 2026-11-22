@@ -31,7 +31,8 @@ export function createEverport(options: CreateEverportOptions): Everport {
   const fs = new NodeFileSystem();
   const processTable = new NodeProcessTable();
   const logger = new FileLogger(fs, layout.logFile);
-  const wrangler = new NodeWranglerRunner();
+  const nodePath = options.nodePath ?? process.execPath;
+  const wrangler = new NodeWranglerRunner(undefined, nodePath);
   const deployer = new RelayDeployer({
     wrangler,
     probe: new NodeRelayProbe(),
@@ -44,7 +45,7 @@ export function createEverport(options: CreateEverportOptions): Everport {
     fs,
     processTable,
     layout,
-    nodePath: options.nodePath ?? process.execPath,
+    nodePath,
     entryPath: options.agentEntry,
   });
   return new Everport({

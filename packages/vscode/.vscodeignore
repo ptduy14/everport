@@ -1,0 +1,9 @@
+**
+!dist/extension.js
+!dist/agent.mjs
+!dist/worker.js
+!resources/**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE

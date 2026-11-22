@@ -1,0 +1,331 @@
+{
+  "name": "everport-vscode",
+  "displayName": "Everport",
+  "description": "Stable public URLs for your local services, on a relay in your own Cloudflare account",
+  "publisher": "everport-dev",
+  "icon": "resources/icon.png",
+  "categories": [
+    "Other"
+  ],
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ptduy14/everport.git"
+  },
+  "homepage": "https://github.com/ptduy14/everport#readme",
+  "bugs": {
+    "url": "https://github.com/ptduy14/everport/issues"
+  },
+  "author": "ptduy14",
+  "keywords": [
+    "tunnel",
+    "public url",
+    "webhook",
+    "localhost",
+    "cloudflare"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "everport",
+          "title": "Everport",
+          "icon": "resources/everport.svg"
+        }
+      ]
+    },
+    "views": {
+      "everport": [
+        {
+          "id": "everport.tunnels",
+          "name": "Tunnels",
+          "icon": "resources/everport.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "everport.tunnels",
+        "contents": "Everport needs Node.js 22 or newer on this computer: it runs the background agent and the Cloudflare tool.\n[Install Node.js](https://nodejs.org)\n[Set the Node.js path](command:workbench.action.openSettings?%5B%22everport.nodePath%22%5D)\n[Check again](command:everport.refresh)",
+        "when": "everport.ready && everport.nodeMissing"
+      },
+      {
+        "view": "everport.tunnels",
+        "contents": "Share local services on stable public URLs, through a relay in your own Cloudflare account.\n[Log in to Cloudflare](command:everport.login)\n[Create a free Cloudflare account](https://dash.cloudflare.com/sign-up)\nEverport never sees your login: Cloudflare's own tool handles it in your browser.",
+        "when": "everport.ready && !everport.nodeMissing && everport.loginKnown && !everport.loggedIn"
+      },
+      {
+        "view": "everport.tunnels",
+        "contents": "No tunnels yet. A tunnel gives a local port a public URL that never changes, even after you restart.\n[Add a Tunnel](command:everport.add)\nTunnels keep running when VS Code is closed.",
+        "when": "everport.ready && !everport.nodeMissing && (!everport.loginKnown || everport.loggedIn)"
+      }
+    ],
+    "configuration": {
+      "title": "Everport",
+      "properties": {
+        "everport.startOnOpen": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Start your enabled tunnels automatically when VS Code opens. **Off by default**: starting makes your local services public and can take 10–30 s per tunnel. Tunnels you started keep running after VS Code closes either way."
+        },
+        "everport.nodePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to a Node.js 22+ executable that runs the Everport agent. Empty: use `node` from your PATH. Needed when VS Code starts without your shell's PATH (common on macOS)."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "everport.add",
+        "title": "Add Tunnel",
+        "category": "Everport",
+        "icon": "$(add)"
+      },
+      {
+        "command": "everport.upAll",
+        "title": "Start All",
+        "category": "Everport",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "everport.downAll",
+        "title": "Stop All",
+        "category": "Everport",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "everport.refresh",
+        "title": "Refresh",
+        "category": "Everport",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "everport.doctor",
+        "title": "Run Doctor",
+        "category": "Everport"
+      },
+      {
+        "command": "everport.showLog",
+        "title": "Show Log",
+        "category": "Everport",
+        "icon": "$(output)"
+      },
+      {
+        "command": "everport.login",
+        "title": "Log in to Cloudflare…",
+        "category": "Everport"
+      },
+      {
+        "command": "everport.copyUrl",
+        "title": "Copy URL",
+        "category": "Everport",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "everport.openUrl",
+        "title": "Open in Browser",
+        "category": "Everport",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "everport.start",
+        "title": "Start",
+        "category": "Everport",
+        "icon": "$(play)"
+      },
+      {
+        "command": "everport.stop",
+        "title": "Stop",
+        "category": "Everport",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "everport.retry",
+        "title": "Retry",
+        "category": "Everport",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "everport.checkHealth",
+        "title": "Check Health",
+        "category": "Everport",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "everport.remove",
+        "title": "Remove…",
+        "category": "Everport",
+        "icon": "$(trash)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "everport.add",
+          "when": "view == everport.tunnels",
+          "group": "navigation@1"
+        },
+        {
+          "command": "everport.upAll",
+          "when": "view == everport.tunnels",
+          "group": "navigation@2"
+        },
+        {
+          "command": "everport.downAll",
+          "when": "view == everport.tunnels",
+          "group": "navigation@3"
+        },
+        {
+          "command": "everport.refresh",
+          "when": "view == everport.tunnels",
+          "group": "1_more@1"
+        },
+        {
+          "command": "everport.doctor",
+          "when": "view == everport.tunnels",
+          "group": "1_more@2"
+        },
+        {
+          "command": "everport.showLog",
+          "when": "view == everport.tunnels",
+          "group": "1_more@3"
+        },
+        {
+          "command": "everport.login",
+          "when": "view == everport.tunnels",
+          "group": "2_account@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "everport.copyUrl",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.((on|off)(\\.unhealthy)?|busy)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "everport.openUrl",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.((on|off)(\\.unhealthy)?|busy)$/",
+          "group": "inline@2"
+        },
+        {
+          "command": "everport.stop",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.on(\\.unhealthy)?$/",
+          "group": "inline@3"
+        },
+        {
+          "command": "everport.start",
+          "when": "view == everport.tunnels && viewItem == tunnel.off",
+          "group": "inline@3"
+        },
+        {
+          "command": "everport.showLog",
+          "when": "view == everport.tunnels && viewItem =~ /\\.failed/",
+          "group": "inline@1"
+        },
+        {
+          "command": "everport.retry",
+          "when": "view == everport.tunnels && viewItem =~ /\\.failed/",
+          "group": "inline@2"
+        },
+        {
+          "command": "everport.stop",
+          "when": "view == everport.tunnels && viewItem =~ /\\.failed/",
+          "group": "inline@3"
+        },
+        {
+          "command": "everport.copyUrl",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.(on|off|busy)/",
+          "group": "1_open@1"
+        },
+        {
+          "command": "everport.openUrl",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.(on|off|busy)/",
+          "group": "1_open@2"
+        },
+        {
+          "command": "everport.start",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.off/",
+          "group": "2_state@1"
+        },
+        {
+          "command": "everport.stop",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.on/",
+          "group": "2_state@2"
+        },
+        {
+          "command": "everport.retry",
+          "when": "view == everport.tunnels && viewItem =~ /\\.failed/",
+          "group": "2_state@3"
+        },
+        {
+          "command": "everport.checkHealth",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.on/",
+          "group": "3_tools@1"
+        },
+        {
+          "command": "everport.showLog",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.(on|off)/",
+          "group": "3_tools@2"
+        },
+        {
+          "command": "everport.remove",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.(on|off)/",
+          "group": "9_remove@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "everport.copyUrl",
+          "when": "false"
+        },
+        {
+          "command": "everport.openUrl",
+          "when": "false"
+        },
+        {
+          "command": "everport.start",
+          "when": "false"
+        },
+        {
+          "command": "everport.stop",
+          "when": "false"
+        },
+        {
+          "command": "everport.retry",
+          "when": "false"
+        },
+        {
+          "command": "everport.checkHealth",
+          "when": "false"
+        },
+        {
+          "command": "everport.remove",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test:vscode": "tsup && tsup --config tsup.test.config.ts && node test/run.mjs",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@everport/agent": "*",
+    "@everport/core": "*",
+    "@everport/relay": "*",
+    "@types/vscode": "~1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.1"
+  }
+}
