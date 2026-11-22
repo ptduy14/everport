@@ -1,0 +1,45 @@
+name: platform-check
+
+# Manual run: macOS minutes cost ten times more on a private repository, so this is started on purpose.
+# It never touches Cloudflare: the runners have no login.
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm test
+      - name: Packed CLI in a clean folder (not logged in to Cloudflare)
+        shell: bash
+        run: |
+          set -x
+          mkdir -p "$RUNNER_TEMP/pack" "$RUNNER_TEMP/install"
+          npm pack -w everport --pack-destination "$RUNNER_TEMP/pack"
+          cd "$RUNNER_TEMP/install" && npm init -y && npm install "$RUNNER_TEMP"/pack/everport-*.tgz
+          export EVERPORT_DATA_DIR="$RUNNER_TEMP/data"
+          E="$RUNNER_TEMP/install/node_modules/.bin/everport"
+          "$E" --version | grep -q '^everport '
+          "$E" ls | grep -q 'No tunnels yet'
+          if "$E" nonsense; then exit 1; else test $? -eq 2; fi
+          if "$E" doctor; then exit 1; fi
+          if "$E" add 3000 --label t0; then exit 1; fi
+          test ! -e "$EVERPORT_DATA_DIR/tunnels.json"
+      - name: Relay in a local workerd
+        run: npx vitest run --config vitest.e2e.config.ts packages/agent/src/workerd
+      - name: Extension in a real VS Code (Linux needs a virtual display)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then xvfb-run -a npm run test:vscode -w everport-vscode; else npm run test:vscode -w everport-vscode; fi
