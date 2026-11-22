@@ -10,7 +10,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = 'https://github.com/ptduy14/everport';
 let text = readFileSync(join(root, 'README.md'), 'utf8').replace(/\r\n/g, '\n');
 
-text = text.replace(/\]\((docs\/[^)]+|SECURITY\.md)\)/g, (_m, path) => `](${repo}/blob/main/${path})`);
+const raw = 'https://raw.githubusercontent.com/ptduy14/everport/main';
+// Images need the raw address to render on npm; other relative links point at the file on GitHub.
+text = text.replace(/!\[([^\]]*)\]\((docs\/[^)]+)\)/g, (_m, alt, path) => `![${alt}](${raw}/${path})`);
+text = text.replace(
+  /\]\((docs\/[^)]+|SECURITY\.md|CONTRIBUTING\.md|LICENSE)\)/g,
+  (_m, path) => `](${repo}/blob/main/${path})`,
+);
 
 const install = `## Install
 
