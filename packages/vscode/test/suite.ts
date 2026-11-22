@@ -73,6 +73,30 @@ export async function run(): Promise<void> {
     }
   });
 
+  // Opt-in (EVERPORT_E2E_SURVIVE=1): add a tunnel on the real account and leave it running. run.mjs then checks
+  // that it still answers after VS Code has exited, and cleans up.
+  if (process.env['EVERPORT_E2E_SURVIVE'] === '1') {
+    await check('real Cloudflare: a tunnel added from the extension host is left running', async () => {
+      const probe = (cmd: string, args: string[]) =>
+        new Promise<string | undefined>((r) =>
+          execFile(cmd, args, { windowsHide: true }, (e, o) => r(e ? undefined : o)),
+        );
+      const nodePath = await findNode('', probe);
+      const dist = join(ext.extensionPath, 'dist');
+      const ep = createEverport({
+        workerFile: join(dist, 'worker.js'),
+        agentEntry: join(dist, 'agent.mjs'),
+        nodePath,
+        workerName: process.env['EVERPORT_SURVIVE_WORKER'] ?? 'ep-smoke-survive',
+      });
+      assert.ok(await ep.isLoggedIn(), 'not logged in to Cloudflare: run "everport login" first');
+      const t = await ep.add({ target: `http://127.0.0.1:${process.env['EVERPORT_SURVIVE_PORT']}`, label: 'sv' });
+      assert.equal(t.state, 'active', JSON.stringify(t.error));
+      await writeFile(process.env['EVERPORT_SURVIVE_OUT'] ?? '', JSON.stringify({ url: t.url }));
+      console.log(`     added ${t.url}; leaving it running`);
+    });
+  }
+
   // Opt-in (EVERPORT_E2E_CLOUDFLARE=1): the whole flow on the real Cloudflare account, driven from inside the
   // extension host, where process.execPath is Electron. Needs `wrangler login` done. Creates and removes ep-smoke-*.
   if (process.env['EVERPORT_E2E_CLOUDFLARE'] === '1') {
