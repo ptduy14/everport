@@ -18,6 +18,6 @@ Include what you did, what you expected, and what happened. You can expect a fir
 ## Not verified yet
 
 - We have not tested whether requests for unknown addresses can create extra Durable Objects in your account.
-- macOS and Linux pass the tests (including owner-only permissions on `relay-secret`) on GitHub's runners, but have not been run against a real Cloudflare account.
+- macOS and Linux pass the tests (including owner-only permissions on `relay-secret`) and the whole flow against a real Cloudflare account on GitHub's runners, but only once each and only with an API token.
 
 Supported version: the latest release.
