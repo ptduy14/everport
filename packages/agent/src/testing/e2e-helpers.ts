@@ -3,9 +3,9 @@ import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
 import { mkdir, mkdtemp, rm, copyFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { NodeProcessTable } from '@everport/core';
+import { NodeProcessTable, resolveNpx } from '@everport/core';
 import { renderWranglerConfig } from '@everport/relay';
 
 export const WRANGLER_VERSION = '4.166.0';
@@ -13,8 +13,8 @@ export const WRANGLER_VERSION = '4.166.0';
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
 const relayDir = join(root, 'packages', 'relay');
 const tsupCli = join(root, 'node_modules', 'tsup', 'dist', 'cli-default.js');
-/** `npx` run through node itself: spawning npx.cmd directly fails with EINVAL on current Node versions. */
-export const npxCli = join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js');
+/** How to run npx: through node itself where possible (spawning npx.cmd directly fails with EINVAL on Windows). */
+const npx = resolveNpx();
 
 /** Builds the relay Worker bundle and returns the path of dist/worker.js. */
 export function buildWorker(): string {
@@ -49,9 +49,9 @@ export async function startWorkerd(options: {
 
   const port = await freePort();
   const child: ChildProcess = spawn(
-    process.execPath,
+    npx.command,
     [
-      npxCli,
+      ...npx.prefix,
       '-y',
       `wrangler@${WRANGLER_VERSION}`,
       'dev',
@@ -64,7 +64,13 @@ export async function startWorkerd(options: {
       '--var',
       `SECRET:${options.secret}`,
     ],
-    { cwd: dir, env: { ...process.env, CI: '1' }, stdio: ['ignore', 'pipe', 'pipe'] },
+    {
+      cwd: dir,
+      env: { ...process.env, CI: '1' },
+      shell: npx.shell,
+      detached: process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
   );
   const processTable = new NodeProcessTable();
   const stop = async () => {

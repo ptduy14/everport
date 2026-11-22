@@ -3,6 +3,7 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { build } from 'esbuild';
 import { NodeFileSystem, NodeProcessTable } from '@everport/core';
 import { FakeRelay } from '@everport/relay/testing';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -14,7 +15,6 @@ import { SECRET, startOrigin, waitFor } from './testing/helpers.js';
 const packageDir = fileURLToPath(new URL('..', import.meta.url));
 const entryPath = fileURLToPath(new URL('../dist/agent.js', import.meta.url));
 const tsupCli = fileURLToPath(new URL('../../../node_modules/tsup/dist/cli-default.js', import.meta.url));
-const esbuildCli = fileURLToPath(new URL('../../../node_modules/esbuild/bin/esbuild', import.meta.url));
 const hostSource = fileURLToPath(new URL('./testing/host.ts', import.meta.url));
 const hostPath = fileURLToPath(new URL('../dist-test/host.mjs', import.meta.url));
 
@@ -23,14 +23,20 @@ afterEach(async () => {
   for (const fn of cleanup.splice(0).reverse()) await fn();
 });
 
-beforeAll(() => {
+beforeAll(async () => {
   execFileSync(process.execPath, [tsupCli], { cwd: packageDir, stdio: 'pipe' });
   expect(existsSync(entryPath)).toBe(true);
-  execFileSync(
-    process.execPath,
-    [esbuildCli, hostSource, '--bundle', '--platform=node', '--format=esm', '--target=node22', `--outfile=${hostPath}`],
-    { cwd: packageDir, stdio: 'pipe' },
-  );
+  // The JS API, not bin/esbuild: on macOS and Linux that file is the native binary, which node cannot run.
+  await build({
+    entryPoints: [hostSource],
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    target: 'node22',
+    outfile: hostPath,
+    absWorkingDir: packageDir,
+    logLevel: 'silent',
+  });
   expect(existsSync(hostPath)).toBe(true);
 }, 60_000);
 

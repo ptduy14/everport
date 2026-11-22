@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { posix, win32 } from 'node:path';
 import type { CliResult, WranglerRunOptions, WranglerRunner } from '../ports.js';
 import { WRANGLER_VERSION } from '../relay/wrangler.js';
 import { NodeProcessTable } from './node-process-table.js';
@@ -21,11 +21,12 @@ export function resolveNpx(
   platform: NodeJS.Platform = process.platform,
   exists: (path: string) => boolean = existsSync,
 ): NpxCommand {
-  const dir = dirname(nodePath);
+  const path = platform === 'win32' ? win32 : posix; // the target platform's rules, whatever runs this code
+  const dir = path.dirname(nodePath);
   const cli =
     platform === 'win32'
-      ? join(dir, 'node_modules', 'npm', 'bin', 'npx-cli.js')
-      : join(dir, '..', 'lib', 'node_modules', 'npm', 'bin', 'npx-cli.js');
+      ? path.join(dir, 'node_modules', 'npm', 'bin', 'npx-cli.js')
+      : path.join(dir, '..', 'lib', 'node_modules', 'npm', 'bin', 'npx-cli.js');
   if (exists(cli)) return { command: nodePath, prefix: [cli], shell: false };
   return platform === 'win32'
     ? { command: 'npx.cmd', prefix: [], shell: true }
