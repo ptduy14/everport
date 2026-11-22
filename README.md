@@ -58,20 +58,7 @@ Open the printed address: it serves whatever runs on `http://127.0.0.1:3000`. Af
 
 ## How it works
 
-```
-caller (webhook, browser, AI connector)
-   │  https://<name>-<worker>.<you>.workers.dev
-   ▼
-Worker + Durable Object in YOUR Cloudflare account   (one preview per tunnel)
-   ▲  WebSocket opened from your computer (outbound only, no open ports)
-   │
-Everport agent (a background Node process on your machine)
-   │  HTTP to 127.0.0.1
-   ▼
-your local service (3000, 3301, 5500, ...)
-```
-
-<!-- TODO(diagram): replace the text diagram above with a drawn diagram of the request path -->
+![A public request reaches a Worker preview and a Durable Object in your Cloudflare account; the Everport agent on your computer holds an outbound WebSocket to the Durable Object and calls your local service.](docs/everport-flow.svg)
 
 - The first `everport add` creates a small relay **Worker** in your account, then one **preview** per tunnel. A preview is a named copy of the Worker with its own address.
 - The **agent** opens one outbound WebSocket per tunnel. Public requests reach Cloudflare, travel down that socket, are replayed against your local port, and the response streams back.
