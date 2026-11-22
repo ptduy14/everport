@@ -14,7 +14,8 @@
     "typecheck": "tsc -p packages/core && tsc -p packages/relay && tsc -p packages/agent && tsc -p packages/cli",
     "test": "vitest run",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

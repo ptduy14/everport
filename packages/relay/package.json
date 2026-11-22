@@ -7,10 +7,14 @@
   "license": "MIT",
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./wrangler-config": "./src/wrangler-config.ts"
   },
   "devDependencies": {
     "@types/ws": "^8.18.2",
     "ws": "^8.23.0"
+  },
+  "scripts": {
+    "build": "tsup"
   }
 }

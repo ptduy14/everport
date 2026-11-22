@@ -29,3 +29,5 @@ export {
   type PublicResponse,
   type RelayCoreOptions,
 } from './relay-core.js';
+export { CODE_VERSION, RELAY_NAME } from './worker/version.js';
+export { renderWranglerConfig, type WranglerConfigOptions } from './wrangler-config.js';
