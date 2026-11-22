@@ -4,7 +4,7 @@ Give each local service a public URL that never changes. The URL lives on a smal
 
 Built for developers who register local services with outside platforms: webhooks, OAuth callbacks, AI connectors. Register the URL once, never paste it again.
 
-> **Status: pre-release.** Tested end to end on Windows against a real Cloudflare account. On Linux (WSL2) the tests, the packed CLI without a Cloudflare login, and the relay in a local workerd pass. **Not yet tested end to end on Linux, not tested at all on macOS, and not yet tested inside ChatGPT's sandboxed iframe.** Not published on npm or the VS Code Marketplace yet. Everport is unofficial and not affiliated with Cloudflare.
+> **Status: pre-release.** Tested end to end on Windows against a real Cloudflare account. On macOS (Apple silicon) and Linux the tests, the packed CLI without a Cloudflare login, the relay in a local workerd and the extension in a real VS Code pass on GitHub's runners. **Not yet tested end to end against Cloudflare on macOS or Linux, and not yet tested inside ChatGPT's sandboxed iframe.** Not published on npm or the VS Code Marketplace yet. Everport is unofficial and not affiliated with Cloudflare.
 
 ## How it works
 
