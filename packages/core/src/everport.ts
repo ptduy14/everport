@@ -168,7 +168,11 @@ export class Everport {
       }
 
       const error = await this.serve(tunnel);
-      this.d.events.emit(error ? 'tunnel:failed' : 'tunnel:ready', `${label}: ${tunnel.url}`, { id: tunnel.id });
+      this.d.events.emit(
+        error ? 'tunnel:failed' : 'tunnel:ready',
+        error ? `${label}: ${error.message}` : `${label} is ready`,
+        { id: tunnel.id },
+      );
       return this.statusOf(tunnel, await this.d.agent.status(), error);
     });
   }
