@@ -29,3 +29,26 @@ export { classifyPorts, type PortSnapshot, type PortGroup, type PortCandidate } 
 export { scanPorts, candidateTarget, type ScanOptions } from './port-scan.js';
 export { NodePortScanner } from './adapters/node-port-scanner.js';
 export { withWaitTiming, sumWaitMs, WAIT_PREFIX } from './timing.js';
+export { NodeWranglerRunner, resolveNpx, type NpxCommand } from './adapters/node-wrangler.js';
+export { NodeRelayProbe } from './adapters/node-relay-probe.js';
+export {
+  WRANGLER_VERSION,
+  isAuthFailure,
+  parseLoggedIn,
+  parsePreviewJson,
+  parseWorkerState,
+  previewMissing,
+  summarizeFailure,
+  wranglerError,
+  type PreviewInfo,
+  type WorkerState,
+} from './relay/wrangler.js';
+export { defaultRandomHex, normalizeTunnelName } from './relay/names.js';
+export { loadOrCreateRelaySecret } from './relay/secret.js';
+export {
+  RelayDeployer,
+  type CreatedTunnel,
+  type NewTunnels,
+  type RelayDeployerDeps,
+  type TunnelHealth,
+} from './relay/relay-deployer.js';

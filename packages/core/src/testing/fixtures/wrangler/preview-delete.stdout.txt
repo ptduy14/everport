@@ -1,0 +1,5 @@
+
+ ⛅️ wrangler 4.166.0
+────────────────────
+
+✨ Preview "sample" deleted successfully.

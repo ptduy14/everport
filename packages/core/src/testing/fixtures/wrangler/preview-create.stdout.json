@@ -1,0 +1,87 @@
+{
+  "preview": {
+    "id": "8e2ee4c4993a40c9b9155d8763f98f23",
+    "slug": "sample",
+    "name": "sample",
+    "tags": [],
+    "observability": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "redact_query_string": false,
+      "logs": {
+        "enabled": false,
+        "head_sampling_rate": 1,
+        "invocation_logs": true,
+        "persist": true,
+        "destinations": []
+      },
+      "traces": {
+        "enabled": false,
+        "head_sampling_rate": 1,
+        "persist": true,
+        "destinations": []
+      }
+    },
+    "logpush": false,
+    "tail_consumers": [],
+    "urls": ["https://sample-ep-smoke-sample.example.workers.dev"],
+    "created_on": "2026-11-22T03:14:41.579346Z",
+    "updated_on": "2026-11-22T03:14:41.579346Z",
+    "deployed_on": null
+  },
+  "deployment": {
+    "id": "ec084cf9-29df-484a-9d67-24371e9b87bd",
+    "number": 1,
+    "startup_time_ms": 0,
+    "compatibility_date": "2025-01-01",
+    "main_module": "worker.js",
+    "annotations": {
+      "workers/triggered_by": "create_preview_deployment_api"
+    },
+    "migrations": {
+      "old_tag": "",
+      "new_tag": "v1",
+      "new_classes": null,
+      "new_sqlite_classes": null,
+      "deleted_classes": null,
+      "unused_classes": null,
+      "renamed_classes": null,
+      "transferred_classes": null,
+      "steps": [
+        {
+          "new_classes": null,
+          "new_sqlite_classes": ["Relay"],
+          "deleted_classes": null,
+          "unused_classes": null,
+          "renamed_classes": null,
+          "transferred_classes": null
+        }
+      ]
+    },
+    "usage_model": "standard",
+    "migration_tag": "v1",
+    "urls": ["https://ec084cf9-ep-smoke-sample.example.workers.dev"],
+    "source": "wrangler",
+    "created_on": "2026-11-22T03:14:44.178435Z",
+    "env": {
+      "RELAY": {
+        "class_name": "Relay",
+        "namespace_id": "5678801796814d5eaebf0f190c538421",
+        "type": "durable_object_namespace"
+      },
+      "ROUTING": {
+        "text": "host",
+        "type": "plain_text"
+      },
+      "SECRET": {
+        "type": "secret_text"
+      },
+      "TUNNEL": {
+        "text": "sample",
+        "type": "plain_text"
+      }
+    },
+    "author_id": "0",
+    "author_email": "user@example.com"
+  }
+}

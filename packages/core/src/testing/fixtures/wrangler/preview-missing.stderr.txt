@@ -1,0 +1,7 @@
+▲ [WARNING] 🚧 `wrangler preview secret list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose
+
+
+X [ERROR] The Preview "nope" was not found. Please check the Preview name, or create it with `wrangler preview`.
+
+
+🪵  Logs were written to "<log file>"

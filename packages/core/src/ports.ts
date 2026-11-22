@@ -6,6 +6,35 @@ export interface CliResult {
   stderr: string;
 }
 
+export interface WranglerRunOptions {
+  cwd?: string;
+  timeoutMs?: number;
+  /** Lets wrangler use the terminal (for `login`). Without it `CI=1` is set so that nothing ever prompts or opens a browser. */
+  interactive?: boolean;
+  env?: Record<string, string>;
+}
+
+/** Runs the pinned wrangler. Never rejects on a non-zero exit code. */
+export interface WranglerRunner {
+  run(args: string[], options?: WranglerRunOptions): Promise<CliResult>;
+}
+
+export type RelayVersionProbe =
+  | { kind: 'relay'; name: string; codeVersion: string; tunnel: string | null }
+  /** Something answered, but it is not an Everport relay (a stranger's Worker, or Cloudflare's 404). */
+  | { kind: 'other'; status: number }
+  | { kind: 'unreachable'; error: string };
+
+export interface RelayProbe {
+  /**
+   * Tries the agent entrance with a token and returns the HTTP status (101 when accepted, 403 for a wrong token,
+   * 0 when nothing answered). **A 101 connects as the agent: it pushes out a real agent of that tunnel.**
+   */
+  handshake(url: string, token: string): Promise<number>;
+  /** GET /__ep/version: who answers at this address. Safe to call any time. */
+  version(url: string): Promise<RelayVersionProbe>;
+}
+
 export interface HttpResponse {
   status: number;
   body: Uint8Array;
