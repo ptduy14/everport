@@ -1,0 +1,32 @@
+name: Bug report
+description: Something does not work
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you saw.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `everport --version`, or the extension version.
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows, macOS, Linux]
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Command line, VS Code, Cursor, Windsurf, Other]
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `everport doctor` and `everport ls --health`, and the end of the log
+      description: Remove anything private. Never paste tokens or the contents of `relay-secret`.
+      render: text

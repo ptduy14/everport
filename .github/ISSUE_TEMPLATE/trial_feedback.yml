@@ -1,0 +1,37 @@
+name: Trial feedback
+description: Report how the first setup went
+labels: [trial]
+body:
+  - type: input
+    id: time
+    attributes:
+      label: Minutes from install to your first public URL
+      description: Include the Cloudflare login if you had to do it.
+    validations:
+      required: true
+  - type: input
+    id: commands
+    attributes:
+      label: How many commands or clicks did you need?
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where you used it
+      options: [Command line, VS Code, Cursor, Windsurf, Other]
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows, macOS, Linux]
+  - type: textarea
+    id: stuck
+    attributes:
+      label: Where did you get stuck or confused?
+  - type: textarea
+    id: job
+    attributes:
+      label: What did you use the URL for? (webhook, OAuth callback, AI connector, other)
+  - type: textarea
+    id: surprise
+    attributes:
+      label: Did anything surprise you (the workers.dev subdomain in the address, the limits, the file locations)?

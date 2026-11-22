@@ -64,7 +64,7 @@ describe('messages', () => {
 
   it('says what removing does to the address, with the real host', () => {
     expect(removeDetail(mk())).toContain('deletes api-7f3k-everport.derrick.workers.dev from your Cloudflare account');
-    expect(removeDetail(mk())).toContain('new tunnel gets a new address');
+    expect(removeDetail(mk())).toContain('same label is expected to get the same address');
   });
 
   it('summarises only enabled failed tunnels', () => {

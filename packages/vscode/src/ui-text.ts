@@ -45,8 +45,8 @@ export const addedMessage = (t: TunnelStatus, first = false): string =>
 export const removeQuestion = (t: TunnelStatus): string => `Remove the tunnel "${t.label}"?`;
 
 export const removeDetail = (t: TunnelStatus): string =>
-  `This deletes ${new URL(t.url).host} from your Cloudflare account. Links that point to it stop working, ` +
-  'and the address is not kept for you: a new tunnel gets a new address.';
+  `This deletes ${new URL(t.url).host} from your Cloudflare account. Links that point to it stop working. ` +
+  'A tunnel added later with the same label is expected to get the same address, but that is not guaranteed.';
 
 export function failedSummary(ts: TunnelStatus[]): string | undefined {
   const failed = ts.filter((t) => t.enabled && t.state === 'failed');
