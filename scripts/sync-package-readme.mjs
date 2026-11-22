@@ -24,7 +24,7 @@ const install = `## Install
 npm install -g everport
 \`\`\`
 
-Needs Node.js 22 or newer. The package has no runtime dependencies: it holds the CLI (\`everport\`, alias \`ep\`), the background agent and the relay Worker. A VS Code extension with the same actions is published separately as "Everport" (publisher \`everport-dev\`).
+Needs Node.js 22.12 or newer. The package has no runtime dependencies: it holds the CLI (\`everport\`, alias \`ep\`), the background agent and the relay Worker. A VS Code extension with the same actions is published separately as "Everport" (publisher \`everport-dev\`).
 
 `;
 const start = text.indexOf('## Install');

@@ -55,7 +55,7 @@
     "viewsWelcome": [
       {
         "view": "everport.tunnels",
-        "contents": "Everport needs Node.js 22 or newer on this computer: it runs the background agent and the Cloudflare tool.\n[Install Node.js](https://nodejs.org)\n[Set the Node.js path](command:workbench.action.openSettings?%5B%22everport.nodePath%22%5D)\n[Check again](command:everport.refresh)",
+        "contents": "Everport needs Node.js 22.12 or newer on this computer: it runs the background agent and the Cloudflare tool.\nUsing fnm, nvm or Volta? VS Code may not see your shell's PATH: set the Node.js path.\n[Install Node.js](https://nodejs.org)\n[Set the Node.js path](command:workbench.action.openSettings?%5B%22everport.nodePath%22%5D)\n[Check again](command:everport.refresh)",
         "when": "everport.ready && everport.nodeMissing"
       },
       {
@@ -80,7 +80,7 @@
         "everport.nodePath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to a Node.js 22+ executable that runs the Everport agent. Empty: use `node` from your PATH. Needed when VS Code starts without your shell's PATH (common on macOS)."
+          "markdownDescription": "Path to a Node.js 22.12+ executable that runs the Everport agent. Empty: use `node` from your PATH. Needed when VS Code starts without your shell's PATH (common with fnm, nvm or Volta, and on macOS). Tip: run `node -p process.execPath` in a terminal where the right Node is active and paste the result."
         }
       }
     },

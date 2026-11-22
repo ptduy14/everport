@@ -33,6 +33,11 @@ export { NodeWranglerRunner, resolveNpx, type NpxCommand } from './adapters/node
 export { NodeRelayProbe } from './adapters/node-relay-probe.js';
 export {
   WRANGLER_VERSION,
+  MIN_NODE,
+  MIN_NODE_LABEL,
+  NODE_TOO_OLD_HINT,
+  isSupportedNode,
+  wranglerNeedsNewerNode,
   isAuthFailure,
   parseLoggedIn,
   parsePreviewJson,

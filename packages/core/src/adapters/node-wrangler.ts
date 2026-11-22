@@ -33,6 +33,23 @@ export function resolveNpx(
     : { command: 'npx', prefix: [], shell: false };
 }
 
+/**
+ * Puts the chosen node's folder first on PATH. npx starts wrangler through its `node` shim, which looks `node` up on
+ * PATH: without this, an editor that starts without the user's shell PATH (fnm, nvm) runs wrangler on another Node.
+ */
+export function withNodeOnPath(
+  env: NodeJS.ProcessEnv,
+  nodePath: string,
+  platform: NodeJS.Platform = process.platform,
+): NodeJS.ProcessEnv {
+  const path = platform === 'win32' ? win32 : posix;
+  const dir = path.dirname(nodePath);
+  if (dir === '.') return env; // a bare "node": the PATH is already what resolves it
+  const key = Object.keys(env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH'; // Windows spells it "Path"
+  const separator = platform === 'win32' ? ';' : ':';
+  return { ...env, [key]: env[key] ? `${dir}${separator}${env[key]}` : dir };
+}
+
 /** Runs the pinned wrangler through npx. Always with CI=1 unless the run is interactive. */
 export class NodeWranglerRunner implements WranglerRunner {
   constructor(
@@ -43,7 +60,7 @@ export class NodeWranglerRunner implements WranglerRunner {
 
   run(args: string[], options: WranglerRunOptions = {}): Promise<CliResult> {
     const npx = resolveNpx(this.nodePath, this.platform);
-    const env: NodeJS.ProcessEnv = { ...process.env, ...options.env };
+    const env: NodeJS.ProcessEnv = withNodeOnPath({ ...process.env, ...options.env }, this.nodePath, this.platform);
     if (options.interactive) delete env['CI'];
     else env['CI'] = '1';
 

@@ -11,7 +11,14 @@ import type { AgentControl, AgentInfo, AgentTunnelInfo, FileSystem, ProcessTable
 import { defaultRandomHex } from './relay/names.js';
 import { RelayDeployer, type TunnelHealth } from './relay/relay-deployer.js';
 import { loadOrCreateRelaySecret } from './relay/secret.js';
-import { WRANGLER_VERSION, summarizeFailure } from './relay/wrangler.js';
+import {
+  MIN_NODE_LABEL,
+  NODE_TOO_OLD_HINT,
+  WRANGLER_VERSION,
+  isSupportedNode,
+  summarizeFailure,
+  wranglerNeedsNewerNode,
+} from './relay/wrangler.js';
 import { InvalidTargetError, normalizeTarget } from './target.js';
 
 export type TunnelState = 'active' | 'stopped' | 'down' | 'missing' | 'failed';
@@ -59,6 +66,7 @@ export interface EverportDeps {
   pid: number;
   /** Name of the relay Worker created by the first `add`. Default `everport`. */
   workerName?: string;
+  /** The version of the Node that runs wrangler and the agent, for `doctor`. Default: the Node running this code. */
   nodeVersion?: string;
   randomHex?: (bytes: number) => string;
   sleep?: (ms: number) => Promise<void>;
@@ -283,9 +291,10 @@ export class Everport {
     };
 
     await check('node', async () => {
+      // The Node that will run wrangler and the agent. Inside an editor that is not the editor's own Node.
       const version = this.d.nodeVersion ?? process.version;
-      const ok = Number(/^v?(\d+)/.exec(version)?.[1]) >= 22;
-      return { ok, detail: version, ...(ok ? {} : { hint: 'Everport needs Node 22 or newer.' }) };
+      const ok = isSupportedNode(version);
+      return { ok, detail: version, ...(ok ? {} : { hint: `Everport needs Node.js ${MIN_NODE_LABEL} or newer.` }) };
     });
 
     await check('wrangler', async () => {
@@ -295,7 +304,9 @@ export class Everport {
         return {
           ok: false,
           detail: summarizeFailure(result),
-          hint: 'Check that "npx" works (it comes with Node) and that the network is up.',
+          hint: wranglerNeedsNewerNode(result)
+            ? NODE_TOO_OLD_HINT
+            : 'Check that "npx" works (it comes with Node) and that the network is up.',
         };
       }
       return version === WRANGLER_VERSION

@@ -24,6 +24,8 @@ export interface CreateEverportOptions {
   workerName?: string;
   /** The node binary that runs the agent. Default: the one running this code. */
   nodePath?: string;
+  /** The version of that node, for `doctor`. Default: the Node running this code. */
+  nodeVersion?: string;
 }
 
 export function createEverport(options: CreateEverportOptions): Everport {
@@ -58,6 +60,7 @@ export function createEverport(options: CreateEverportOptions): Everport {
     wrangler,
     processTable,
     pid: process.pid,
+    ...(options.nodeVersion && { nodeVersion: options.nodeVersion }),
     ...(options.workerName && { workerName: options.workerName }),
   });
 }

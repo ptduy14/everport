@@ -3,10 +3,29 @@ import { EverportError } from '../errors.js';
 import type { CliResult } from '../ports.js';
 
 /**
- * The wrangler that every measurement was made with. `wrangler preview` is an open beta and has had flags the docs do
- * not list, so the version is pinned exactly and bumped on purpose.
+ * The wrangler that every measurement was made with. `wrangler preview` is a recent feature that has had flags the docs
+ * do not list, so the version is pinned exactly and bumped on purpose.
  */
 export const WRANGLER_VERSION = '4.166.0';
+
+/** The oldest Node.js this wrangler runs on (the `engines` field of wrangler 4.166.0 says >=22.12.0). Bump with it. */
+export const MIN_NODE = { major: 22, minor: 12 } as const;
+export const MIN_NODE_LABEL = `${MIN_NODE.major}.${MIN_NODE.minor}`;
+
+/** True for a version string like "v22.12.0" or "24.1.0" that is at least MIN_NODE. */
+export function isSupportedNode(version: string): boolean {
+  const match = /^v?(\d+)\.(\d+)/.exec(version.trim());
+  if (!match) return false;
+  const [major, minor] = [Number(match[1]), Number(match[2])];
+  return major > MIN_NODE.major || (major === MIN_NODE.major && minor >= MIN_NODE.minor);
+}
+
+/** What to do when the Node.js that runs wrangler is too old. */
+export const NODE_TOO_OLD_HINT = `Wrangler needs Node.js ${MIN_NODE_LABEL} or newer. Switch to a newer Node.js, or in VS Code set "everport.nodePath" to its executable.`;
+
+/** Wrangler refuses to start on a Node that is too old and says so in its own words. */
+export const wranglerNeedsNewerNode = (result: CliResult): boolean =>
+  /requires at least Node\.js/i.test(stripAnsi(`${result.stderr}\n${result.stdout}`));
 
 export type WorkerState = 'none' | 'previews-only' | 'regular';
 
@@ -47,6 +66,13 @@ export function summarizeFailure(result: CliResult): string {
 export function wranglerError(result: CliResult, what: string): EverportError {
   if (isAuthFailure(result)) {
     return new EverportError('NOT_LOGGED_IN', 'You are not logged in to Cloudflare', 'Run "everport login".');
+  }
+  if (wranglerNeedsNewerNode(result)) {
+    return new EverportError(
+      'WRANGLER_FAILED',
+      `wrangler failed while ${what}: ${summarizeFailure(result)}`,
+      NODE_TOO_OLD_HINT,
+    );
   }
   if (/\[code: 10003\]/.test(result.stderr)) {
     return new EverportError(

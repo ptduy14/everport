@@ -57,9 +57,28 @@ Everport talks to Cloudflare through [wrangler](https://developers.cloudflare.co
 | Setting                | Default | Meaning                                                                                                          |
 | ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
 | `everport.startOnOpen` | off     | Start your enabled tunnels when VS Code opens. Off by default because starting makes your local services public. |
-| `everport.nodePath`    | empty   | Path to a Node.js 22+ executable. Needed when VS Code starts without your shell's `PATH` (common on macOS).      |
+| `everport.nodePath`    | empty   | Path to a Node.js 22.12+ executable. Needed when VS Code starts without your shell's `PATH` (common on macOS).   |
 
 Commands are under the **Everport** category in the Command Palette: Add Tunnel, Start All, Stop All, Start, Stop, Retry, Copy URL, Open in Browser, Check Health, Remove, Run Doctor, Show Log, Refresh and Log in to Cloudflare.
+
+## Node.js and version managers
+
+Everport needs Node.js **22.12 or newer**. The floor comes from the Cloudflare tool it runs (wrangler 4.166.0 declares `node >=22.12.0`), not from Everport's own code. The CLI always runs on the Node.js that started it. The VS Code extension needs to be told which Node.js to use when it cannot find one:
+
+- It runs `node` from the `PATH` that VS Code has. VS Code started from the Start menu, the Dock or a launcher does not have your shell's `PATH`, so with fnm, nvm or Volta it may find no Node.js, or an older one installed system-wide.
+- Run `node -p process.execPath` in a terminal where the right Node.js is active, and set `everport.nodePath` to the result.
+- Everport runs wrangler on that same Node.js, whatever the editor's own `PATH` says.
+
+What we checked, on Linux and macOS (GitHub Actions runners) and on Windows: the paths below are what `process.execPath` printed, and the `node` and `wrangler` checks of `everport doctor` passed with each (the Windows row: with the fnm path in the first column).
+
+| Manager | `process.execPath` looks like                                        | Checked on                   |
+| ------- | -------------------------------------------------------------------- | ---------------------------- |
+| fnm     | `~/.local/share/fnm/node-versions/vX.Y.Z/installation/bin/node`      | Linux, macOS                 |
+| fnm     | `%APPDATA%\fnm\node-versions\vX.Y.Z\installation\node.exe`           | Windows                      |
+| nvm     | `~/.nvm/versions/node/vX.Y.Z/bin/node`                               | Linux (not checked on macOS) |
+| Volta   | `~/.volta/tools/image/node/X.Y.Z/bin/node` (not the `bin/node` shim) | Linux, macOS                 |
+
+On Windows with fnm, `process.execPath` can show a `fnm_multishells\...` folder. That is a link (a junction) to the installed version, with the npm files next to it, but the `node-versions` path is the stable one. We did not check nvm-windows, asdf or other managers.
 
 ## Troubleshooting
 
@@ -70,7 +89,8 @@ Start with `everport doctor`: it checks each piece and prints a fix for every fa
 - **A tunnel shows `missing`**: its preview was lost on Cloudflare. `everport up` recreates it at the same address.
 - **A tunnel shows a health of `mismatch`**: another Worker answers at that address. Remove the tunnel and add it again.
 - **The first command takes a minute**: wrangler is downloaded once through `npx`, then cached.
-- **VS Code says it needs Node.js 22**: install it, or set `everport.nodePath` to the executable.
+- **VS Code says it needs Node.js 22.12, but your terminal has it**: VS Code did not inherit your shell's `PATH`. See [Node version managers](#node-version-managers).
+- **An error says Wrangler requires at least Node.js v22.12.0**: the Node.js that runs wrangler is older than that. Switch to a newer Node.js, or set `everport.nodePath`.
 
 ## Cloudflare limits
 

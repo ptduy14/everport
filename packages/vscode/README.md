@@ -7,16 +7,16 @@ Built for developers who register local services with outside platforms: webhook
 ## Get started
 
 1. Open the Everport view in the Activity Bar and run **Log in to Cloudflare**. Cloudflare's own tool opens your browser; Everport never sees your login. You need a Cloudflare account (free to create).
-2. Run **Add Tunnel**, pick a running port, and copy the URL. The first tunnel also creates the relay in your account and takes about 20 seconds.
+2. Run **Add Tunnel**, pick a running port, and copy the URL. The first tunnel also creates the relay in your account and can take a little while.
 
 The same tunnels are available from a terminal with the `everport` command (alias `ep`).
 
 ## What to know
 
-- Everport needs **Node.js 22 or newer** on your computer (it runs the background agent and Cloudflare's tool). If VS Code cannot see it, set `everport.nodePath`.
+- Everport needs **Node.js 22.12 or newer** on your computer (it runs the background agent and Cloudflare's tool). If VS Code cannot see it (common with a version manager such as fnm or nvm, because VS Code may not have your shell's `PATH`), run `node -p process.execPath` in a terminal where the right Node.js is active and set `everport.nodePath` to the result.
 - Your public addresses contain your Cloudflare `workers.dev` subdomain, which Cloudflare may have taken from your email address. Everport says so when you add your first tunnel.
 - Starting tunnels makes your local services public. Tunnels do not start when VS Code opens unless you turn on `everport.startOnOpen`.
 - Removing a tunnel deletes its address from Cloudflare. A tunnel added later with the same label is expected to get the same address, but that is not guaranteed.
-- No telemetry.
+- Everport's own code sends no usage data. Cloudflare's wrangler, which Everport runs, has its own setting for that: see [Privacy and security](https://github.com/ptduy14/everport/blob/main/docs/reference.md#privacy-and-security).
 
 Run **Everport: Run Doctor** if something does not work, and **Show Log** for details.

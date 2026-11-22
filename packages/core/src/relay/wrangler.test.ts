@@ -2,14 +2,18 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { CliResult } from '../ports.js';
 import {
+  MIN_NODE_LABEL,
+  NODE_TOO_OLD_HINT,
   WRANGLER_VERSION,
   isAuthFailure,
+  isSupportedNode,
   parseLoggedIn,
   parsePreviewJson,
   parseWorkerState,
   previewMissing,
   summarizeFailure,
   wranglerError,
+  wranglerNeedsNewerNode,
 } from './wrangler.js';
 
 const fixture = (name: string) =>
@@ -19,7 +23,7 @@ const AUTH =
   "X [ERROR] In a non-interactive environment, it's necessary to set a CLOUDFLARE_API_TOKEN environment variable";
 
 describe('the pinned version', () => {
-  it('is exact, not a range: wrangler preview is an open beta', () => {
+  it('is exact, not a range: wrangler preview is a recent feature and moves', () => {
     expect(WRANGLER_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
@@ -118,5 +122,30 @@ describe('failures', () => {
     expect(other.code).toBe('WRANGLER_FAILED');
     expect(other.message).toContain('creating the preview');
     expect(other.message).toContain('it broke');
+  });
+});
+
+describe('the Node.js that wrangler needs', () => {
+  it.each(['v22.12.0', '22.12.0', 'v22.13.1', 'v24.22.3', '25.0.0'])('accepts %s', (v) => {
+    expect(isSupportedNode(v)).toBe(true);
+  });
+  it.each(['v22.11.0', '22.0.0', 'v20.19.4', 'v20.9.0', '', 'not-a-version'])('refuses %j', (v) => {
+    expect(isSupportedNode(v)).toBe(false);
+  });
+
+  const tooOld: CliResult = {
+    code: 1,
+    stdout: '',
+    stderr:
+      'Wrangler requires at least Node.js v22.12.0. You are using v20.19.4. Please update your version of Node.js.',
+  };
+
+  it('recognises wrangler refusing to start on an old Node, and says what to do', () => {
+    expect(wranglerNeedsNewerNode(tooOld)).toBe(true);
+    expect(wranglerNeedsNewerNode({ code: 1, stdout: '', stderr: 'something else' })).toBe(false);
+    const error = wranglerError(tooOld, 'checking the login');
+    expect(error.code).toBe('WRANGLER_FAILED');
+    expect(error.hint).toBe(NODE_TOO_OLD_HINT);
+    expect(NODE_TOO_OLD_HINT).toContain(MIN_NODE_LABEL);
   });
 });

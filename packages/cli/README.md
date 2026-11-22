@@ -25,7 +25,7 @@ Everport gives each local service its own address that **stays the same**, even 
 
 ## Quick start
 
-You need a [Cloudflare account](https://dash.cloudflare.com/sign-up) (the free plan is enough) and Node.js 22 or newer.
+You need a [Cloudflare account](https://dash.cloudflare.com/sign-up) (the free plan is enough) and Node.js 22.12 or newer.
 
 ```bash
 npm install -g everport
@@ -62,7 +62,7 @@ Your computer only connects **out**: no port is opened and no firewall rule is n
 npm install -g everport
 ```
 
-Needs Node.js 22 or newer. The package has no runtime dependencies: it holds the CLI (`everport`, alias `ep`), the background agent and the relay Worker. A VS Code extension with the same actions is published separately as "Everport" (publisher `everport-dev`).
+Needs Node.js 22.12 or newer. The package has no runtime dependencies: it holds the CLI (`everport`, alias `ep`), the background agent and the relay Worker. A VS Code extension with the same actions is published separately as "Everport" (publisher `everport-dev`).
 
 ## Use
 
@@ -95,7 +95,7 @@ Options, environment variables, the data folder, CI tokens and troubleshooting a
 
 Open the Everport view in the Activity Bar to log in to Cloudflare, add a tunnel from a picker of the ports that are listening, start and stop tunnels, copy and open URLs, check health and run the doctor. The status bar shows how many tunnels are running.
 
-Two settings matter: `everport.startOnOpen` starts your enabled tunnels when VS Code opens (off by default, because starting makes your local services public), and `everport.nodePath` points to a Node.js 22+ executable when VS Code cannot find one.
+Two settings matter: `everport.startOnOpen` starts your enabled tunnels when VS Code opens (off by default, because starting makes your local services public), and `everport.nodePath` points to a Node.js 22.12+ executable when VS Code cannot find one.
 
 ## Good to know
 

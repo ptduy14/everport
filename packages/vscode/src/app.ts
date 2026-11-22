@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import { createEverport } from '@everport/agent';
 import { createLayout, EverportError, type Everport, type TunnelStatus } from '@everport/core';
 import { POLL_HIDDEN_MS, POLL_VISIBLE_MS, shouldAutoStart } from './lifecycle.js';
-import { findNode } from './node-path.js';
+import { findNodeInfo } from './node-path.js';
 import type { TunnelsProvider } from './tunnels-view.js';
 import { failedSummary } from './ui-text.js';
 import { badgeCount, statusBar } from './view-model.js';
@@ -48,9 +48,9 @@ export class App {
 
   private async createManager(): Promise<Everport> {
     const setting = vscode.workspace.getConfiguration('everport').get<string>('nodePath', '');
-    let nodePath: string;
+    let node: { path: string; version: string };
     try {
-      nodePath = await findNode(setting, probeNode);
+      node = await findNodeInfo(setting, probeNode);
     } catch (e) {
       this.nodeMissing = true;
       throw e;
@@ -61,7 +61,8 @@ export class App {
     return createEverport({
       workerFile: join(dist, 'worker.js'),
       agentEntry: join(dist, 'agent.mjs'),
-      nodePath,
+      nodePath: node.path,
+      nodeVersion: node.version,
       ...(workerName ? { workerName } : {}),
     });
   }

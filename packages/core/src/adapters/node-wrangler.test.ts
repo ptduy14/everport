@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveNpx } from './node-wrangler.js';
+import { resolveNpx, withNodeOnPath } from './node-wrangler.js';
 
 describe('resolveNpx', () => {
   it('runs npx-cli.js with node itself on Windows, so no shell is needed (npx.cmd cannot be spawned directly)', () => {
@@ -32,5 +32,27 @@ describe('resolveNpx', () => {
   it('finds npx for the node that runs these tests', () => {
     const npx = resolveNpx();
     expect(npx.command.length).toBeGreaterThan(0);
+  });
+});
+
+describe('withNodeOnPath', () => {
+  it("puts the chosen node's folder first, so wrangler's `node` shim finds the same node", () => {
+    const env = withNodeOnPath({ PATH: 'C:\\Program Files\\nodejs' }, 'C:\\fnm\\v24\\node.exe', 'win32');
+    expect(env['PATH']).toBe('C:\\fnm\\v24;C:\\Program Files\\nodejs');
+  });
+
+  it('keeps the spelling of the variable ("Path" on Windows) instead of adding a second one', () => {
+    const env = withNodeOnPath({ Path: 'C:\\Windows' }, 'C:\\tools\\node.exe', 'win32');
+    expect(env).toEqual({ Path: 'C:\\tools;C:\\Windows' });
+  });
+
+  it('uses the colon separator on macOS and Linux and works without a PATH', () => {
+    expect(withNodeOnPath({ PATH: '/usr/bin' }, '/opt/node/bin/node', 'linux')['PATH']).toBe('/opt/node/bin:/usr/bin');
+    expect(withNodeOnPath({}, '/opt/node/bin/node', 'linux')['PATH']).toBe('/opt/node/bin');
+  });
+
+  it('leaves the environment alone for a bare "node"', () => {
+    const env = { PATH: '/usr/bin' };
+    expect(withNodeOnPath(env, 'node', 'linux')).toBe(env);
   });
 });

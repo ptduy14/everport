@@ -10,7 +10,7 @@ Thanks for taking an interest. Bug reports, fixes and small improvements are wel
 
 ## Setting up
 
-You need Node.js 22 or newer (the repository's `.nvmrc` says 24) and npm.
+You need Node.js 22.12 or newer (the repository's `.nvmrc` says 24) and npm.
 
 ```bash
 git clone https://github.com/ptduy14/everport.git
