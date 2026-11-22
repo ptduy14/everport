@@ -41,6 +41,7 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
     return app.refresh();
   });
   reg('showLog', () => app.showLog());
+  reg('selectNode', () => app.selectNode());
 
   reg('add', () =>
     app.run('Add tunnel', async () => {

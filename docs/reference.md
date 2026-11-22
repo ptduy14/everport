@@ -63,11 +63,15 @@ Commands are under the **Everport** category in the Command Palette: Add Tunnel,
 
 ## Node.js and version managers
 
-Everport needs Node.js **22.12 or newer**. The floor comes from the Cloudflare tool it runs (wrangler 4.166.0 declares `node >=22.12.0`), not from Everport's own code. The CLI always runs on the Node.js that started it. The VS Code extension needs to be told which Node.js to use when it cannot find one:
+Everport needs Node.js **22.12 or newer**. The floor comes from the Cloudflare tool it runs (wrangler 4.166.0 declares `node >=22.12.0`), not from Everport's own code. The CLI always runs on the Node.js that started it. The VS Code extension picks one like this:
 
-- It runs `node` from the `PATH` that VS Code has. VS Code started from the Start menu, the Dock or a launcher does not have your shell's `PATH`, so with fnm, nvm or Volta it may find no Node.js, or an older one installed system-wide.
-- Run `node -p process.execPath` in a terminal where the right Node.js is active, and set `everport.nodePath` to the result.
-- Everport runs wrangler on that same Node.js, whatever the editor's own `PATH` says.
+1. If `everport.nodePath` is set, it uses exactly that, and says why when it cannot run it.
+2. Otherwise it uses `node` from the `PATH` that VS Code has. VS Code started from the Start menu, the Dock or a launcher does not have your shell's `PATH`, so with fnm, nvm or Volta it may find no Node.js, or an older one installed system-wide.
+3. If that is missing or older than 22.12, it looks in the folders of fnm, nvm, Volta and asdf (and the usual system places such as Homebrew and `Program Files\nodejs`) and uses the newest version that wrangler runs on. The Everport output channel says which one it picked.
+
+To choose yourself, run **Everport: Select Node.js** from the Command Palette (or press **Choose Node.js** in the Everport view): it lists the versions it found and lets you browse for a `node` executable. Or set `everport.nodePath` to the result of `node -p process.execPath` run in a terminal where the right Node.js is active.
+
+Everport runs wrangler on the Node.js it picked, whatever the editor's own `PATH` says.
 
 What we checked, on Linux and macOS (GitHub Actions runners) and on Windows: the paths below are what `process.execPath` printed, and the `node` and `wrangler` checks of `everport doctor` passed with each (the Windows row: with the fnm path in the first column).
 

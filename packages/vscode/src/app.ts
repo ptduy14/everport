@@ -1,11 +1,13 @@
 import { execFile } from 'node:child_process';
+import { access, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { createEverport } from '@everport/agent';
 import { createLayout, EverportError, type Everport, type TunnelStatus } from '@everport/core';
 import { POLL_HIDDEN_MS, POLL_VISIBLE_MS, shouldAutoStart } from './lifecycle.js';
-import { findNodeInfo } from './node-path.js';
+import { discoverNodes, type DiscoveryHost, type NodeCandidate } from './node-discovery.js';
+import { PROBE_ARGS, findNodeInfo, parseProbe } from './node-path.js';
 import type { TunnelsProvider } from './tunnels-view.js';
 import { failedSummary } from './ui-text.js';
 import { badgeCount, statusBar } from './view-model.js';
@@ -15,6 +17,32 @@ const probeNode = (command: string, args: string[]) =>
     execFile(command, args, { windowsHide: true, timeout: 10_000 }, (err, stdout) => resolve(err ? undefined : stdout)),
   );
 
+const discoveryHost: DiscoveryHost = {
+  platform: process.platform,
+  env: process.env,
+  home: homedir(),
+  subfolders: async (dir) => {
+    try {
+      return (await readdir(dir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch {
+      return [];
+    }
+  },
+  exists: (path) =>
+    access(path).then(
+      () => true,
+      () => false,
+    ),
+};
+
+const probeCandidate = async (path: string): Promise<NodeCandidate | undefined> => {
+  const found = parseProbe(await probeNode(path, PROBE_ARGS));
+  return found ? { path: found.path, version: found.version } : undefined;
+};
+
+/** Node.js installs in the folders of the version managers and the usual system places, newest first. */
+const discover = () => discoverNodes(discoveryHost, probeCandidate);
+
 const setContext = (key: string, value: boolean) => vscode.commands.executeCommand('setContext', key, value);
 
 /** Shared state of the extension: the manager, the last statuses, busy rows and the UI they drive. */
@@ -23,6 +51,8 @@ export class App {
   private readonly busy = new Set<string>();
   private everportPromise: Promise<Everport> | undefined;
   private nodeMissing = false;
+  /** Why Node.js cannot be used, shown above the empty view. */
+  private nodeProblem = '';
   private lastStatusError = '';
   private loginChecking = false;
   private inFlight: Promise<void> | undefined;
@@ -41,6 +71,39 @@ export class App {
     return this.everportPromise;
   }
 
+  /** "Everport: Select Node.js": the installs found on this computer, or a file the person browses to. */
+  async selectNode(): Promise<void> {
+    type Item = vscode.QuickPickItem & { action: 'use' | 'browse' | 'clear'; path?: string };
+    const found = await discover();
+    const items: Item[] = [
+      ...found.map((n): Item => ({ label: `Node.js ${n.version}`, description: n.path, action: 'use', path: n.path })),
+      { label: '$(folder-opened) Browse for node...', action: 'browse' },
+      { label: '$(discard) Use the node on the PATH', description: 'clears the setting', action: 'clear' },
+    ];
+    const picked = await vscode.window.showQuickPick(items, {
+      title: 'Everport: Select Node.js',
+      placeHolder:
+        found.length > 0 ? 'Node.js versions Everport can use' : 'No Node.js 22.12 or newer found in the usual places',
+    });
+    if (!picked) return;
+    const config = vscode.workspace.getConfiguration('everport');
+    if (picked.action === 'clear') return void (await config.update('nodePath', '', vscode.ConfigurationTarget.Global));
+    let path = picked.path;
+    if (picked.action === 'browse') {
+      const chosen = await vscode.window.showOpenDialog({ canSelectMany: false, title: 'Select the node executable' });
+      path = chosen?.[0]?.fsPath;
+    }
+    if (!path) return;
+    try {
+      await findNodeInfo(path, probeNode);
+    } catch (e) {
+      const error = e instanceof EverportError ? `${e.message}. ${e.hint}` : String(e);
+      void vscode.window.showErrorMessage(error);
+      return;
+    }
+    await config.update('nodePath', path, vscode.ConfigurationTarget.Global); // the change handler re-reads everything
+  }
+
   /** Forget the manager (and a "Node not found" result), e.g. after the Node setting changed or on Refresh. */
   resetEverport(): void {
     this.everportPromise = undefined;
@@ -48,14 +111,17 @@ export class App {
 
   private async createManager(): Promise<Everport> {
     const setting = vscode.workspace.getConfiguration('everport').get<string>('nodePath', '');
-    let node: { path: string; version: string };
+    let node: Awaited<ReturnType<typeof findNodeInfo>>;
     try {
-      node = await findNodeInfo(setting, probeNode);
+      node = await findNodeInfo(setting, probeNode, discover);
     } catch (e) {
       this.nodeMissing = true;
+      this.nodeProblem = e instanceof EverportError ? `${e.message}. ${e.hint}` : String(e);
       throw e;
     }
     this.nodeMissing = false;
+    this.nodeProblem = '';
+    if (node.source === 'detected') this.out.appendLine(`Using Node.js ${node.version} found at ${node.path}`);
     const dist = join(this.extensionPath, 'dist');
     const workerName = process.env['EVERPORT_WORKER_NAME'];
     return createEverport({
@@ -178,6 +244,7 @@ export class App {
 
   private render(): void {
     this.provider.setData(this.statuses, this.busy);
+    this.view.message = this.nodeMissing && this.nodeProblem ? this.nodeProblem : undefined;
     const count = badgeCount(this.statuses);
     this.view.badge = count > 0 ? { value: count, tooltip: `${count} need attention` } : undefined;
     const sb = statusBar(this.statuses);

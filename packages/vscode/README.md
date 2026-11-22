@@ -13,7 +13,7 @@ The same tunnels are available from a terminal with the `everport` command (alia
 
 ## What to know
 
-- Everport needs **Node.js 22.12 or newer** on your computer (it runs the background agent and Cloudflare's tool). If VS Code cannot see it (common with a version manager such as fnm or nvm, because VS Code may not have your shell's `PATH`), run `node -p process.execPath` in a terminal where the right Node.js is active and set `everport.nodePath` to the result.
+- Everport needs **Node.js 22.12 or newer** on your computer (it runs the background agent and Cloudflare's tool). If VS Code cannot see it Everport looks on your `PATH` and in the folders of fnm, nvm and Volta, and picks the newest version it can use. To choose another one, run **Everport: Select Node.js**.
 - Your public addresses contain your Cloudflare `workers.dev` subdomain, which Cloudflare may have taken from your email address. Everport says so when you add your first tunnel.
 - Starting tunnels makes your local services public. Tunnels do not start when VS Code opens unless you turn on `everport.startOnOpen`.
 - Removing a tunnel deletes its address from Cloudflare. A tunnel added later with the same label is expected to get the same address, but that is not guaranteed.

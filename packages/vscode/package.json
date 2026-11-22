@@ -55,7 +55,7 @@
     "viewsWelcome": [
       {
         "view": "everport.tunnels",
-        "contents": "Everport needs Node.js 22.12 or newer on this computer: it runs the background agent and the Cloudflare tool.\nUsing fnm, nvm or Volta? VS Code may not see your shell's PATH: set the Node.js path.\n[Install Node.js](https://nodejs.org)\n[Set the Node.js path](command:workbench.action.openSettings?%5B%22everport.nodePath%22%5D)\n[Check again](command:everport.refresh)",
+        "contents": "Everport needs Node.js 22.12 or newer on this computer: it runs the background agent and the Cloudflare tool.\nEverport looks for Node.js on your PATH and in the folders of fnm, nvm and Volta. If yours is somewhere else, pick it.\n[Choose Node.js](command:everport.selectNode)\n[Install Node.js](https://nodejs.org)\n[Check again](command:everport.refresh)",
         "when": "everport.ready && everport.nodeMissing"
       },
       {
@@ -80,7 +80,7 @@
         "everport.nodePath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to a Node.js 22.12+ executable that runs the Everport agent. Empty: use `node` from your PATH. Needed when VS Code starts without your shell's PATH (common with fnm, nvm or Volta, and on macOS). Tip: run `node -p process.execPath` in a terminal where the right Node is active and paste the result."
+          "markdownDescription": "Path to a Node.js 22.12+ executable that runs the Everport agent. Empty: use `node` from your PATH, or if there is none, the newest suitable one Everport finds in the folders of fnm, nvm and Volta. Run **Everport: Select Node.js** to choose from a list. Needed when VS Code starts without your shell's PATH (common with fnm, nvm or Volta, and on macOS). Tip: run `node -p process.execPath` in a terminal where the right Node is active and paste the result."
         }
       }
     },
@@ -112,6 +112,11 @@
       {
         "command": "everport.doctor",
         "title": "Run Doctor",
+        "category": "Everport"
+      },
+      {
+        "command": "everport.selectNode",
+        "title": "Select Node.js...",
         "category": "Everport"
       },
       {
