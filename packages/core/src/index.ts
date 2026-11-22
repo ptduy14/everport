@@ -52,3 +52,12 @@ export {
   type RelayDeployerDeps,
   type TunnelHealth,
 } from './relay/relay-deployer.js';
+export {
+  Everport,
+  type AddInput,
+  type DoctorCheck,
+  type EverportDeps,
+  type StopOutcome,
+  type TunnelState,
+  type TunnelStatus,
+} from './everport.js';

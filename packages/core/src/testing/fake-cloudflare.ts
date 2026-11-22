@@ -56,6 +56,7 @@ const defaultSlug = (name: string, workerName: string): string =>
 export class FakeCloudflare {
   workers = new Map<string, FakeWorker>();
   subdomain = 'example';
+  wranglerVersion = '4.166.0';
   loggedIn = true;
   loginSucceeds = true;
   /** How long creating a preview takes: long enough for two creations of a new Worker to overlap. */
@@ -129,6 +130,7 @@ export class FakeCloudflare {
       if (this.loginSucceeds) this.loggedIn = true;
       return this.loginSucceeds ? ok() : { code: 1, stdout: '', stderr: '' };
     }
+    if (command === '--version') return ok(`${this.wranglerVersion}\n`);
     if (command === 'whoami') {
       return this.loggedIn
         ? ok(

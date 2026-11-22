@@ -6,6 +6,8 @@ export type EverportErrorCode =
   | 'WORKER_NAME_TAKEN'
   | 'RELAY_MISMATCH'
   | 'AGENT_NOT_RUNNING'
+  | 'AGENT_REPLACED'
+  | 'RELAY_UNREACHABLE'
   | 'CONFIG_INVALID'
   | 'LOCKED'
   | 'TUNNEL_NOT_FOUND'

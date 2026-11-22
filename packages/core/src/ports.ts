@@ -35,6 +35,31 @@ export interface RelayProbe {
   version(url: string): Promise<RelayVersionProbe>;
 }
 
+export interface AgentTunnelInfo {
+  name: string;
+  state: 'connecting' | 'connected' | 'replaced' | 'stopped';
+  /** Why the last connection attempt failed, while it is still trying. */
+  lastError?: string;
+}
+
+export interface AgentInfo {
+  pid: number;
+  tunnels: AgentTunnelInfo[];
+}
+
+/** The background agent as the facade sees it. The real adapter lives in the agent package. */
+export interface AgentControl {
+  /** What the running agent serves, or null when no agent runs. */
+  status(): Promise<AgentInfo | null>;
+  /** Starts the agent if it is not running. */
+  ensureRunning(): Promise<void>;
+  /** Serves a tunnel (or changes its target). The agent must be running. */
+  addTunnel(tunnel: { name: string; url: string; target: string }): Promise<void>;
+  /** Stops serving a tunnel. False when the agent had no such tunnel or no agent runs. */
+  removeTunnel(name: string): Promise<boolean>;
+  stop(): Promise<'stopped' | 'killed' | 'not-running'>;
+}
+
 export interface HttpResponse {
   status: number;
   body: Uint8Array;

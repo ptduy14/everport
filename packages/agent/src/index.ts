@@ -15,3 +15,5 @@ export { AgentControlServer, MAX_BODY_BYTES, TOKEN_HEADER, type ControlServerOpt
 export { parseAgentState, readAgentState, removeAgentState, writeAgentState, type AgentState } from './state.js';
 export { runDaemon, type Daemon, type DaemonOptions } from './daemon.js';
 export { findAgent, startAgent, stopAgent, type FindDeps, type LauncherDeps, type StopOutcome } from './launcher.js';
+export { ProcessAgentControl } from './agent-control.js';
+export { createEverport, type CreateEverportOptions } from './create-everport.js';
