@@ -4,6 +4,8 @@ Give each local service a public URL that never changes, from the VS Code sideba
 
 Built for developers who register local services with outside platforms: webhooks, OAuth callbacks, AI connectors (tested with an app in ChatGPT). Register the URL once, never paste it again.
 
+![How Everport works: the agent on your computer opens a WebSocket out to your relay in your Cloudflare account; a request to your public URL goes through a Worker preview and a Durable Object, down that WebSocket, to your local service. The URL stays the same after a restart.](https://raw.githubusercontent.com/ptduy14/everport/main/docs/everport-flow.png)
+
 ## Get started
 
 1. Open the Everport view in the Activity Bar and run **Log in to Cloudflare**. Cloudflare's own tool opens your browser; Everport never sees your login. You need a Cloudflare account (free to create).
