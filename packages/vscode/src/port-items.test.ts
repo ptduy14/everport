@@ -1,6 +1,6 @@
 import type { PortCandidate, TunnelStatus } from '@everport/core';
 import { describe, expect, it } from 'vitest';
-import { pickerEntries, pickerPlaceholder, sharedPorts, suggestedLabel } from './port-items.js';
+import { pickerEntries, pickerPlaceholder, sharedNames, sharedPorts, suggestedLabel } from './port-items.js';
 
 const cand = (over: Partial<PortCandidate>): PortCandidate => ({
   port: 3000,
@@ -59,10 +59,17 @@ describe('pickerEntries', () => {
     ]);
   });
 
-  it('notes shared ports and ports without HTTP', () => {
+  it('notes shared ports and ports without HTTP, with what choosing them means', () => {
     const e = pickerEntries({ candidates: list, showAll: false, typed: '' });
     const fe = e.find((x) => x.kind === 'candidate' && x.candidate.port === 3000);
-    expect(fe).toMatchObject({ detail: 'Already shared by a tunnel · No HTTP response', description: 'node · fe' });
+    expect(fe).toMatchObject({
+      detail:
+        "Already shared by a tunnel · adding it again gives it a second URL · Doesn't answer HTTP · a web URL won't work for it",
+      description: 'node · fe',
+    });
+    const named = pickerEntries({ candidates: list, showAll: false, typed: '', sharedNames: new Map([[3000, 'web']]) });
+    const fe2 = named.find((x) => x.kind === 'candidate' && x.candidate.port === 3000);
+    expect(fe2 && 'detail' in fe2 ? fe2.detail : '').toContain('Already shared as "web"');
     const api = e.find((x) => x.kind === 'candidate' && x.candidate.port === 3301);
     expect(api && 'detail' in api ? api.detail : undefined).toBeUndefined();
   });
@@ -104,5 +111,12 @@ describe('sharedPorts', () => {
         tunnel('d', 'http://192.168.1.9:8080'),
       ]),
     ).toEqual([3000, 5173, 4000]);
+  });
+});
+
+describe('sharedNames', () => {
+  it('names the first tunnel on each local port', () => {
+    const names = sharedNames([tunnel('a', 'http://127.0.0.1:3000'), tunnel('b', 'http://localhost:3000/x')]);
+    expect([...names]).toEqual([[3000, 'a']]);
   });
 });

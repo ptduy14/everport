@@ -55,18 +55,33 @@
     "viewsWelcome": [
       {
         "view": "everport.tunnels",
-        "contents": "Everport needs Node.js 22.12 or newer on this computer: it runs the background agent and the Cloudflare tool.\nEverport looks for Node.js on your PATH and in the folders of fnm, nvm and Volta. If yours is somewhere else, pick it.\n[Choose Node.js](command:everport.selectNode)\n[Install Node.js](https://nodejs.org)\n[Check again](command:everport.refresh)",
+        "contents": "Checking your setup…\nFinding Node.js and checking your Cloudflare login. The first time can take up to a minute while Cloudflare's tool downloads.",
+        "when": "!everport.ready || (!everport.nodeMissing && !everport.statusError && !everport.loginKnown && !everport.loginError)"
+      },
+      {
+        "view": "everport.tunnels",
+        "contents": "Everport runs on Node.js 22.12 or newer. Pick one that is already on this computer, or install it.\n[Choose Node.js](command:everport.selectNode)\n[Check Again](command:everport.refresh)\nNo Node.js yet? [Download it](https://nodejs.org), then click Check Again.\nEverport looks on your PATH and in the folders of fnm, nvm and Volta.",
         "when": "everport.ready && everport.nodeMissing"
       },
       {
         "view": "everport.tunnels",
-        "contents": "Share local services on stable public URLs, through a relay in your own Cloudflare account.\n[Log in to Cloudflare](command:everport.login)\n[Create a free Cloudflare account](https://dash.cloudflare.com/sign-up)\nEverport never sees your login: Cloudflare's own tool handles it in your browser.",
-        "when": "everport.ready && !everport.nodeMissing && everport.loginKnown && !everport.loggedIn"
+        "contents": "Everport couldn't read your tunnels. The log says why.\n[Show Log](command:everport.showLog)\n[Run Doctor](command:everport.doctor)\n[Check Again](command:everport.refresh)",
+        "when": "everport.ready && !everport.nodeMissing && everport.statusError"
+      },
+      {
+        "view": "everport.tunnels",
+        "contents": "Couldn't reach Cloudflare to check your login. Check your internet connection, then try again.\n[Try Again](command:everport.refresh)\n[Log in to Cloudflare](command:everport.login)\nDetails are in the [log](command:everport.showLog).",
+        "when": "everport.ready && !everport.nodeMissing && !everport.statusError && !everport.loginKnown && everport.loginError"
+      },
+      {
+        "view": "everport.tunnels",
+        "contents": "Give your local services public URLs that never change, served from your own Cloudflare account.\n[Log in to Cloudflare](command:everport.login)\nNo account? [Create one for free](https://dash.cloudflare.com/sign-up).\nLogin happens in your browser, through Cloudflare's own tool. Everport never sees your password.",
+        "when": "everport.ready && !everport.nodeMissing && !everport.statusError && everport.loginKnown && !everport.loggedIn"
       },
       {
         "view": "everport.tunnels",
         "contents": "No tunnels yet. A tunnel gives a local port a public URL that never changes, even after you restart.\n[Add a Tunnel](command:everport.add)\nTunnels keep running when VS Code is closed.",
-        "when": "everport.ready && !everport.nodeMissing && (!everport.loginKnown || everport.loggedIn)"
+        "when": "everport.ready && !everport.nodeMissing && !everport.statusError && everport.loginKnown && everport.loggedIn"
       }
     ],
     "configuration": {
@@ -75,12 +90,12 @@
         "everport.startOnOpen": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Start your enabled tunnels automatically when VS Code opens. **Off by default**: starting makes your local services public and can take 10–30 s per tunnel. Tunnels you started keep running after VS Code closes either way."
+          "markdownDescription": "Start your tunnels when VS Code opens, if they are not already running. Off by default, because starting makes your local services public."
         },
         "everport.nodePath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to a Node.js 22.12+ executable that runs the Everport agent. Empty: use `node` from your PATH, or if there is none, the newest suitable one Everport finds in the folders of fnm, nvm and Volta. Run **Everport: Select Node.js** to choose from a list. Needed when VS Code starts without your shell's PATH (common with fnm, nvm or Volta, and on macOS). Tip: run `node -p process.execPath` in a terminal where the right Node is active and paste the result."
+          "markdownDescription": "The Node.js (22.12 or newer) Everport runs on. Leave empty to pick one automatically. Easiest: run **Everport: Select Node.js**."
         }
       }
     },
@@ -101,7 +116,8 @@
         "command": "everport.downAll",
         "title": "Stop All",
         "category": "Everport",
-        "icon": "$(debug-stop)"
+        "icon": "$(debug-stop)",
+        "enablement": "everport.anyRunning"
       },
       {
         "command": "everport.refresh",
@@ -177,22 +193,27 @@
       "view/title": [
         {
           "command": "everport.add",
-          "when": "view == everport.tunnels",
+          "when": "view == everport.tunnels && everport.canManage",
           "group": "navigation@1"
         },
         {
           "command": "everport.upAll",
-          "when": "view == everport.tunnels",
+          "when": "view == everport.tunnels && everport.canManage && everport.hasTunnels",
           "group": "navigation@2"
         },
         {
           "command": "everport.downAll",
-          "when": "view == everport.tunnels",
+          "when": "view == everport.tunnels && everport.canManage && everport.hasTunnels",
           "group": "navigation@3"
         },
         {
           "command": "everport.refresh",
-          "when": "view == everport.tunnels",
+          "when": "view == everport.tunnels && !everport.canManage",
+          "group": "navigation@4"
+        },
+        {
+          "command": "everport.refresh",
+          "when": "view == everport.tunnels && everport.canManage",
           "group": "1_more@1"
         },
         {
@@ -207,14 +228,19 @@
         },
         {
           "command": "everport.login",
-          "when": "view == everport.tunnels",
+          "when": "view == everport.tunnels && !everport.loggedIn",
           "group": "2_account@1"
         }
       ],
       "view/item/context": [
         {
+          "command": "everport.start",
+          "when": "view == everport.tunnels && viewItem == tunnel.on.offline",
+          "group": "inline@0"
+        },
+        {
           "command": "everport.copyUrl",
-          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.((on|off)(\\.unhealthy)?|busy)$/",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.((on|off)(\\.unhealthy|\\.offline)?|busy)$/",
           "group": "inline@1"
         },
         {
@@ -233,19 +259,14 @@
           "group": "inline@3"
         },
         {
-          "command": "everport.showLog",
+          "command": "everport.retry",
           "when": "view == everport.tunnels && viewItem =~ /\\.failed/",
           "group": "inline@1"
         },
         {
-          "command": "everport.retry",
+          "command": "everport.showLog",
           "when": "view == everport.tunnels && viewItem =~ /\\.failed/",
           "group": "inline@2"
-        },
-        {
-          "command": "everport.stop",
-          "when": "view == everport.tunnels && viewItem =~ /\\.failed/",
-          "group": "inline@3"
         },
         {
           "command": "everport.copyUrl",
@@ -259,7 +280,7 @@
         },
         {
           "command": "everport.start",
-          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.off/",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.(off|on\\.offline)/",
           "group": "2_state@1"
         },
         {
@@ -274,7 +295,7 @@
         },
         {
           "command": "everport.checkHealth",
-          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.on/",
+          "when": "view == everport.tunnels && viewItem =~ /^tunnel\\.on(\\.unhealthy|\\.failed)?$/",
           "group": "3_tools@1"
         },
         {

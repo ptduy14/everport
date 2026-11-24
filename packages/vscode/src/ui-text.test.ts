@@ -3,13 +3,20 @@ import { describe, expect, it } from 'vitest';
 import {
   DOWN_MESSAGES,
   addedMessage,
+  cliToVsCode,
   defaultLabel,
-  failedSummary,
+  doctorReport,
+  errorText,
+  failedNotice,
   healthMessage,
   labelError,
+  progressText,
   removeDetail,
+  removeQuestion,
+  startAllSummary,
   subdomainNotice,
   targetError,
+  urlPreview,
 } from './ui-text.js';
 
 const mk = (over: Partial<TunnelStatus> = {}): TunnelStatus => ({
@@ -36,51 +43,133 @@ describe('target input', () => {
   });
 });
 
-describe('label input', () => {
-  it('requires a label that no other tunnel uses (case-insensitive)', () => {
+describe('name input', () => {
+  it('requires a name that no other tunnel uses (case-insensitive)', () => {
     expect(labelError('  ', [])).toBeTruthy();
     expect(labelError('api', [mk()])).toContain('already used');
     expect(labelError('Web', [mk()])).toBeUndefined();
   });
-  it('treats an empty label as "use the default", which must be free too', () => {
+  it('treats an empty name as "use the default", which must be free too', () => {
     expect(labelError('', [mk()], '3000')).toBeUndefined();
     expect(labelError('  ', [mk({ label: '3000' })], '3000')).toContain('already used');
+  });
+  it('previews the URL from an existing tunnel, normalised like the real name', () => {
+    expect(urlPreview('Billing API', [mk()], 'everport')).toBe('https://billing-api-everport.derrick.workers.dev');
+  });
+  it('previews the URL before the first tunnel without inventing the subdomain', () => {
+    expect(urlPreview('web', [], 'everport')).toBe('https://web-everport.<your-subdomain>.workers.dev');
   });
 });
 
 describe('messages', () => {
-  it('has a message for every stop outcome', () => {
+  it('has a message for every stop outcome, without the forced-stop detail', () => {
     expect(Object.keys(DOWN_MESSAGES).sort()).toEqual(['killed', 'not-running', 'stopped']);
+    expect(DOWN_MESSAGES.killed).not.toContain('force');
     expect(DOWN_MESSAGES['not-running']).toContain('Nothing to stop');
   });
 
   it('gives the new URL, and the subdomain notice only with the first tunnel', () => {
-    expect(addedMessage(mk())).toContain('https://api-7f3k-everport.derrick.workers.dev');
-    expect(addedMessage(mk())).toContain('stays the same after restarts');
-    expect(addedMessage(mk())).not.toContain('workers.dev subdomain');
-    expect(addedMessage(mk(), true)).toContain('workers.dev subdomain ("derrick")');
-    expect(subdomainNotice('https://x-everport.derrick.workers.dev')).toContain('("derrick")');
+    expect(addedMessage(mk())).toContain('is live at https://api-7f3k-everport.derrick.workers.dev');
+    expect(addedMessage(mk())).not.toContain('subdomain');
+    expect(addedMessage(mk(), true)).toContain('"derrick" is your Cloudflare subdomain');
+    expect(subdomainNotice('https://x-everport.derrick.workers.dev')).toContain('"derrick"');
   });
 
   it('says what removing does to the address, with the real host', () => {
-    expect(removeDetail(mk())).toContain('deletes api-7f3k-everport.derrick.workers.dev from your Cloudflare account');
-    expect(removeDetail(mk())).toContain('same label is expected to get the same address');
+    expect(removeQuestion(mk())).toBe('Remove "API" and its public URL?');
+    expect(removeDetail(mk())).toContain('https://api-7f3k-everport.derrick.workers.dev stops working right away');
+    expect(removeDetail(mk())).toContain('use Stop instead');
   });
 
-  it('summarises only enabled failed tunnels', () => {
-    expect(failedSummary([mk()])).toBeUndefined();
-    expect(failedSummary([mk({ state: 'failed' }), mk({ label: 'Web', state: 'failed', enabled: false })])).toBe(
-      '1 tunnel could not start: API.',
+  it('turns core events into short progress steps', () => {
+    expect(progressText({ type: 'relay:setup', message: 'long core text' }, true)).toContain('First tunnel only');
+    expect(progressText({ type: 'tunnel:creating', message: 'x' }, true)).toBe(
+      'Creating the public URL… (first tunnel: 10–20 s)',
     );
+    expect(progressText({ type: 'tunnel:creating', message: 'x' }, false)).toBe('Creating the public URL…');
+    expect(progressText({ type: 'agent:starting', message: 'x' }, false)).toBe('Connecting…');
+    expect(progressText({ type: 'agent:ready', message: 'x' }, false)).toBeUndefined();
+    expect(progressText({ type: 'tunnel:ready', message: 'api is ready' }, false)).toBe('api is ready');
   });
 
   it.each([
     ['ok', 'is healthy'],
-    ['not-found', 'does not know this address'],
+    ['not-found', "doesn't know this URL"],
     ['mismatch', 'something other than your relay'],
-    ['unreachable', 'does not answer'],
+    ['unreachable', "doesn't answer"],
     [undefined, 'not running'],
   ] as const)('health %s', (health, text) => {
     expect(healthMessage(mk({ health }))).toContain(text);
+  });
+});
+
+describe('errors in VS Code words', () => {
+  it('turns CLI commands in core hints into buttons', () => {
+    expect(cliToVsCode('Run "everport up": it brings it back.')).toBe('Click Start All: it brings it back.');
+    expect(cliToVsCode('Check the network, then run "everport up" again.')).toBe(
+      'Check the network, then click Start All.',
+    );
+    expect(cliToVsCode('Run "everport login", then "everport up".')).toBe('Log in to Cloudflare, then Start All.');
+    expect(cliToVsCode('none yet: the first "everport add" creates it')).toBe(
+      'none yet: the first Add Tunnel creates it',
+    );
+  });
+
+  it('has its own words for known codes and keeps the core text for the rest', () => {
+    expect(errorText({ code: 'RELAY_UNREACHABLE', message: 'fetch failed', hint: '' }).summary).toBe(
+      "Couldn't reach Cloudflare.",
+    );
+    expect(errorText({ code: 'CONFIG_INVALID', message: 'Bad file', hint: 'Run "everport up"' })).toEqual({
+      summary: 'Bad file.',
+      fix: 'Click Start All.',
+    });
+  });
+
+  it('names one failed tunnel with its reason and offers Retry', () => {
+    const failed = mk({ label: 'Web', state: 'failed', error: { code: 'RELAY_UNREACHABLE', message: 'x', hint: '' } });
+    const notice = failedNotice([mk(), failed, mk({ label: 'Off', state: 'failed', enabled: false })]);
+    expect(notice?.text).toBe(
+      "Web couldn't start. Couldn't reach Cloudflare. Check your connection, then click Retry. 1 other tunnel is online.",
+    );
+    expect(notice?.retry).toBe(failed);
+    expect(failedNotice([mk()])).toBeUndefined();
+  });
+
+  it('counts several failed tunnels', () => {
+    const notice = failedNotice([mk({ state: 'failed' }), mk({ label: 'Web', state: 'failed' })]);
+    expect(notice).toEqual({ text: "2 tunnels couldn't start: API, Web." });
+  });
+
+  it('sums up Start All for the log', () => {
+    expect(startAllSummary([mk(), mk({ state: 'failed' })])).toEqual({
+      ok: false,
+      text: 'Start all: 1 of 2 online, 1 failed',
+    });
+    expect(startAllSummary([mk()])).toEqual({ ok: true, text: 'Start all: 1 of 1 online' });
+  });
+});
+
+describe('doctorReport', () => {
+  const checks = [
+    { name: 'node', ok: true, detail: '24.11.0' },
+    { name: 'wrangler', ok: true, detail: '4.166.0' },
+    { name: 'cloudflare login', ok: false, detail: 'not logged in', hint: 'Run "everport login".' },
+    { name: 'tunnel web', ok: true, detail: 'https://web' },
+  ];
+
+  it('keeps technical checks at debug while they pass, and always shows failures with a fix', () => {
+    const { lines } = doctorReport(checks);
+    expect(lines.find((l) => l.text.includes('4.166.0'))?.level).toBe('debug');
+    expect(lines.find((l) => l.text.includes('24.11.0'))).toEqual({ level: 'info', text: '  ✓ Node.js     24.11.0' });
+    expect(lines.filter((l) => l.level === 'error').map((l) => l.text)).toEqual([
+      '  ✗ Cloudflare  not logged in',
+      '      Fix: Log in to Cloudflare.',
+    ]);
+    expect(lines.at(-1)).toEqual({ level: 'warn', text: 'Doctor: 1 problem found' });
+  });
+
+  it('names a single problem in the notice', () => {
+    expect(doctorReport(checks).notice).toBe('Doctor: 1 problem. Cloudflare: not logged in. Log in to Cloudflare.');
+    expect(doctorReport(checks.filter((c) => c.ok)).notice).toBe('Doctor: everything looks fine.');
   });
 });

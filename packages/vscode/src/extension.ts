@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import { App } from './app.js';
+import { App, VIEW_ID } from './app.js';
 import { registerCommands } from './commands.js';
 import { TunnelsProvider } from './tunnels-view.js';
 
 export function activate(ctx: vscode.ExtensionContext): void {
-  const out = vscode.window.createOutputChannel('Everport');
+  const out = vscode.window.createOutputChannel('Everport', { log: true });
   const provider = new TunnelsProvider();
-  const view = vscode.window.createTreeView('everport.tunnels', { treeDataProvider: provider });
+  const view = vscode.window.createTreeView(VIEW_ID, { treeDataProvider: provider });
   const bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   bar.command = 'workbench.view.extension.everport';
   ctx.subscriptions.push(out, view, bar);

@@ -1,7 +1,18 @@
 import { execFileSync } from 'node:child_process';
 import { EverportError } from '@everport/core';
 import { describe, expect, it } from 'vitest';
-import { PROBE_ARGS, findNode, findNodeInfo, parseProbe } from './node-path.js';
+import {
+  PROBE_ARGS,
+  detectedNote,
+  findNode,
+  findNodeInfo,
+  nodeOrigin,
+  nodePickEntries,
+  nodeProblemText,
+  parseProbe,
+  pickedNodeText,
+  type NodeUnusableError,
+} from './node-path.js';
 
 describe('parseProbe', () => {
   it('reads the path, the version and the major version', () => {
@@ -132,5 +143,91 @@ describe('findNodeInfo with a search of the usual places', () => {
   it('points at the command that picks a Node.js', async () => {
     const error = await findNodeInfo('', async () => undefined).catch((e: unknown) => e);
     expect((error as EverportError).hint).toContain('Everport: Select Node.js');
+  });
+});
+
+describe('what the person reads about Node.js', () => {
+  const failure = (run: Promise<unknown>): Promise<NodeUnusableError> =>
+    run.then(
+      () => {
+        throw new Error('expected Node.js to be unusable');
+      },
+      (e: unknown) => e as NodeUnusableError,
+    );
+  const tooOld = () =>
+    failure(
+      findNodeInfo(
+        '',
+        async () => '/usr/bin/node\n20.19.4\n',
+        async () => [],
+      ),
+    );
+
+  it('says in one sentence why Node.js cannot be used', async () => {
+    expect(nodeProblemText(await tooOld())).toBe('Found Node.js 20.19.4, but Everport needs 22.12 or newer.');
+    const missing = await failure(findNodeInfo('', async () => undefined));
+    expect(nodeProblemText(missing)).toBe("Node.js wasn't found on this computer.");
+    const broken = await failure(findNodeInfo('/mine/node', async () => undefined));
+    expect(nodeProblemText(broken)).toBe("The Node.js set in Settings couldn't run.");
+  });
+
+  it('says what a picked file is when it cannot be used', async () => {
+    expect(pickedNodeText(await tooOld())).toBe("That's Node.js 20.19.4. Everport needs 22.12 or newer.");
+    const broken = await failure(findNodeInfo('C:\\x\\notepad.exe', async () => undefined));
+    expect(pickedNodeText(broken)).toContain("That file isn't Node.js");
+  });
+
+  it('remembers the PATH node it skipped, and explains the choice', async () => {
+    const info = await findNodeInfo(
+      '',
+      async () => '/usr/bin/node\n20.19.4\n',
+      async () => [{ path: '/home/me/.nvm/versions/node/v24.22.3/bin/node', version: '24.22.3' }],
+    );
+    expect(info.skipped).toEqual({ path: '/usr/bin/node', version: '20.19.4' });
+    expect(detectedNote(info)).toBe(
+      'Your PATH has Node.js 20.19.4, which is too old, so Everport uses Node.js 24.22.3 from nvm (/home/me/.nvm/versions/node/v24.22.3/bin/node).',
+    );
+  });
+
+  it.each([
+    ['C:\\Users\\me\\AppData\\Roaming\\fnm\\node-versions\\v24.22.3\\installation\\node.exe', 'fnm'],
+    ['/home/me/.nvm/versions/node/v22.14.0/bin/node', 'nvm'],
+    ['C:\\nvm4w\\nodejs\\node.exe', 'nvm'],
+    ['/home/me/.volta/tools/image/node/24.0.0/bin/node', 'Volta'],
+    ['/home/me/.asdf/installs/nodejs/22.12.0/bin/node', 'asdf'],
+    ['C:\\Program Files\\nodejs\\node.exe', 'system'],
+  ])('names where %s comes from', (path, origin) => {
+    expect(nodeOrigin(path)).toBe(origin);
+  });
+});
+
+describe('nodePickEntries', () => {
+  const found = [
+    { path: 'C:\\fnm\\v24\\node.exe', version: '24.22.3' },
+    { path: 'C:\\fnm\\v22\\node.exe', version: '22.23.5' },
+  ];
+
+  it('marks the Node.js in use and says where each comes from', () => {
+    const entries = nodePickEntries(found, 'c:\\FNM\\v24\\node.exe', { path: 'C:\\node.exe', version: '20.19.4' });
+    expect(entries.map((e) => e.label)).toEqual([
+      'found on this computer',
+      '$(check) Node.js 24.22.3',
+      '$(blank) Node.js 22.23.5',
+      'other',
+      '$(folder-opened) Browse for node…',
+      '$(sparkle) Pick automatically',
+    ]);
+    expect(entries[1]).toMatchObject({ description: 'fnm · in use', detail: 'C:\\fnm\\v24\\node.exe', inUse: true });
+    expect(entries[2]).toMatchObject({ description: 'fnm', inUse: false });
+    expect(entries.at(-1)).toMatchObject({
+      detail: 'PATH first (now Node.js 20.19.4, too old), then the newest found',
+    });
+  });
+
+  it('describes the automatic choice when the PATH has no node', () => {
+    expect(nodePickEntries([], undefined, undefined).map((e) => e.kind)).toEqual(['separator', 'browse', 'auto']);
+    expect(nodePickEntries([], undefined, undefined).at(-1)).toMatchObject({
+      detail: 'PATH first (none there now), then the newest found',
+    });
   });
 });

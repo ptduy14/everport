@@ -13,6 +13,7 @@ import {
   pickedTarget,
   pickerEntries,
   pickerPlaceholder,
+  sharedNames,
   sharedPorts,
   suggestedLabel,
   type PickEntry,
@@ -21,13 +22,20 @@ import {
   DOWN_MESSAGES,
   addedMessage,
   defaultLabel,
-  failedSummary,
+  doctorReport,
+  errorText,
   healthMessage,
   labelError,
+  LOGGED_IN_TEXT,
+  LOGIN_WAIT_TEXT,
+  LOGIN_WAIT_TITLE,
+  REMOVE_BUTTON,
   removeDetail,
   removeQuestion,
   targetError,
+  urlPreview,
 } from './ui-text.js';
+import { STATE_WORDS } from './view-model.js';
 
 /** `start` only brings a tunnel up when the agent runs; otherwise start the agent too, so one click is enough. */
 const needsUp = (t: TunnelStatus) => t.state === 'down' || t.state === 'missing';
@@ -53,28 +61,33 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
       if (!loggedIn) throw new EverportError('NOT_LOGGED_IN', 'You are not logged in to Cloudflare', '');
 
       const picked = await pickTarget(app);
-      if (!picked) return;
+      if (!picked) return app.log('info', '  Cancelled');
       const { target: normalized, fallback } = picked;
       // Starts empty (not prefilled), so it does not look like step 1 again; empty means "use the default".
       const typed = await vscode.window.showInputBox({
-        title: 'Add Tunnel · 2 of 2 · Label (optional)',
-        prompt: `Name shown in the Tunnels list for ${normalized}. Leave empty to use "${fallback}".`,
+        title: 'Add Tunnel · 2 of 2 · Name',
+        prompt: `Part of the public URL, and it can't be changed later. Press Enter to keep "${fallback}".`,
         placeHolder: `${fallback} (press Enter to use it)`,
         ignoreFocusOut: true,
-        validateInput: (v) => labelError(v, app.statuses, fallback),
+        validateInput: (v) => {
+          const error = labelError(v, app.statuses, fallback);
+          if (error) return error;
+          const url = urlPreview(v.trim() || fallback, app.statuses, app.workerName);
+          return { message: `Public URL: ${url}`, severity: vscode.InputBoxValidationSeverity.Info };
+        },
       });
-      if (typed === undefined) return; // Esc cancels the whole add
+      if (typed === undefined) return app.log('info', '  Cancelled'); // Esc cancels the whole add
       const label = typed.trim() || fallback;
       const first = app.statuses.length === 0;
+      app.log('info', `  ${label} → ${normalized}`);
+      const started = Date.now();
       // The first tunnel also creates the relay on Cloudflare, which takes about 20 s.
       await app.progress(`Adding ${label}…`, (e) => e.add({ target: normalized, label }));
       await app.refresh();
       const added = app.statuses.find((t) => t.label === label);
       if (added?.state === 'active') {
-        const text = addedMessage(added, first);
-        const pick = first
-          ? await vscode.window.showWarningMessage(text, 'Copy URL', 'Open')
-          : await vscode.window.showInformationMessage(text, 'Copy URL', 'Open');
+        app.log('info', `✓ ${label} is live at ${added.url} (${((Date.now() - started) / 1000).toFixed(1)} s)`);
+        const pick = await vscode.window.showInformationMessage(addedMessage(added, first), 'Copy URL', 'Open');
         if (pick === 'Copy URL') await copyUrl(added);
         if (pick === 'Open') await openUrl(added);
       } else if (added?.state === 'failed' && added.error) {
@@ -87,8 +100,7 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
     app.run('Start all', async () => {
       await app.progress('Starting tunnels…', (ep) => ep.up());
       await app.refresh();
-      const failed = failedSummary(app.statuses);
-      if (failed && (await vscode.window.showWarningMessage(failed, 'Show Log')) === 'Show Log') await app.showLog();
+      await app.reportStartAll();
     }),
   );
 
@@ -96,25 +108,35 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
     app.run('Stop all', async () => {
       const outcome = await app.progress('Stopping tunnels…', (ep) => ep.down());
       await app.refresh();
+      if (outcome === 'killed') app.log('info', '  The agent did not stop in time and was ended by force');
+      app.log('info', `✓ ${DOWN_MESSAGES[outcome]}`);
       void vscode.window.showInformationMessage(DOWN_MESSAGES[outcome]);
     }),
   );
 
   reg('start', (t: TunnelStatus) =>
-    app.run(`Start ${t.label}`, () =>
-      app.withBusy([t.id], async () => {
+    app.run(`Start ${t.label}`, async () => {
+      await app.withBusy([t.id], 'Starting…', async () => {
         const ep = await app.ep();
         if (needsUp(await ep.start(t.id))) await ep.up();
-      }),
-    ),
+      });
+      logTunnelResult(app, t.id);
+    }),
   );
 
   reg('stop', (t: TunnelStatus) =>
-    app.run(`Stop ${t.label}`, () => app.withBusy([t.id], async () => void (await (await app.ep()).stop(t.id)))),
+    app.run(`Stop ${t.label}`, async () => {
+      await app.withBusy([t.id], 'Stopping…', async () => void (await (await app.ep()).stop(t.id)));
+      app.log('info', `✓ ${t.label} stopped. Its URL is kept.`);
+    }),
   );
 
+  // Retry runs Start All: every tunnel is checked again, so the whole view shows progress.
   reg('retry', (t: TunnelStatus) =>
-    app.run(`Retry ${t.label}`, () => app.withBusy([t.id], async () => void (await (await app.ep()).up()))),
+    app.run(`Retry ${t.label}`, async () => {
+      await app.viewProgress(() => app.withBusy([t.id], 'Retrying…', async () => void (await (await app.ep()).up())));
+      await app.reportStartAll();
+    }),
   );
 
   reg('remove', (t: TunnelStatus) =>
@@ -122,21 +144,26 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
       const pick = await vscode.window.showWarningMessage(
         removeQuestion(t),
         { modal: true, detail: removeDetail(t) },
-        'Remove',
+        REMOVE_BUTTON,
       );
-      if (!pick) return;
-      await app.withBusy([t.id], async () => (await app.ep()).remove(t.id));
+      if (!pick) return app.log('info', '  Cancelled');
+      await app.withBusy([t.id], 'Removing…', async () => (await app.ep()).remove(t.id));
+      app.log('info', `✓ ${t.label} removed. ${new URL(t.url).host} no longer works.`);
     }),
   );
 
   reg('checkHealth', (t: TunnelStatus) =>
-    app.run(`Check ${t.label}`, async () => {
+    app.run(`Check health of ${t.label}`, async () => {
       await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: `Checking ${t.label}…` },
         () => app.refresh({ health: true }),
       );
       const now = app.statuses.find((s) => s.id === t.id) ?? t;
-      void vscode.window.showInformationMessage(healthMessage(now));
+      const text = healthMessage(now);
+      app.log(now.health === 'ok' || !now.health ? 'info' : 'warn', `${now.health === 'ok' ? '✓' : '✗'} ${text}`);
+      void (now.health && now.health !== 'ok'
+        ? vscode.window.showWarningMessage(text)
+        : vscode.window.showInformationMessage(text));
     }),
   );
 
@@ -146,29 +173,57 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
   reg('login', () =>
     app.run('Log in to Cloudflare', async () => {
       // Cloudflare's own tool does the login in the browser; Everport never sees it.
-      await app.progress('Logging in to Cloudflare… finish in the browser window that opened', (ep) => ep.login());
+      const ep = await app.ep();
+      const done = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: LOGIN_WAIT_TITLE, cancellable: true },
+        async (p, token) => {
+          p.report({ message: LOGIN_WAIT_TEXT });
+          const stop = new AbortController();
+          token.onCancellationRequested(() => stop.abort());
+          try {
+            await ep.login({ signal: stop.signal });
+            return true;
+          } catch (e) {
+            if (e instanceof EverportError && e.code === 'CANCELLED') return false;
+            throw e;
+          }
+        },
+      );
+      if (!done) return app.log('info', '  Cancelled');
       app.setLoggedIn(true);
+      app.log('info', '✓ Logged in to Cloudflare');
       await app.refresh();
-      void vscode.window.showInformationMessage('Logged in to Cloudflare. Add a tunnel to get a public URL.');
+      const pick = await vscode.window.showInformationMessage(LOGGED_IN_TEXT, 'Add a Tunnel');
+      if (pick === 'Add a Tunnel') await vscode.commands.executeCommand('everport.add');
     }),
   );
 
   reg('doctor', () =>
-    app.run('Doctor', async () => {
+    app.run('Run Doctor', async () => {
       const checks = await app.progress('Checking your setup…', (ep) => ep.doctor());
-      app.out.appendLine(`--- everport doctor ${new Date().toLocaleString()}`);
-      for (const c of checks) {
-        app.out.appendLine(`${c.ok ? 'OK  ' : 'FAIL'}  ${c.name}: ${c.detail}`);
-        if (!c.ok && c.hint) app.out.appendLine(`      -> ${c.hint}`);
-      }
-      app.out.show(true);
-      const failed = checks.filter((c) => !c.ok).length;
-      const msg = failed
-        ? `Doctor found ${failed} problem${failed > 1 ? 's' : ''}; details are in the output.`
-        : 'Everything looks fine.';
-      void (failed ? vscode.window.showWarningMessage(msg) : vscode.window.showInformationMessage(msg));
+      const { lines, notice } = doctorReport(checks);
+      for (const l of lines) app.log(l.level, l.text);
+      const ok = checks.every((c) => c.ok);
+      const pick = ok
+        ? await vscode.window.showInformationMessage(notice)
+        : await vscode.window.showWarningMessage(notice, 'Show Details');
+      if (pick === 'Show Details') app.showLog();
     }),
   );
+}
+
+/** "✓ api online", or the reason it is not. */
+function logTunnelResult(app: App, id: string): void {
+  const t = app.statuses.find((s) => s.id === id);
+  if (!t) return;
+  if (t.state === 'active') return app.log('info', `✓ ${t.label} online`);
+  if (t.state === 'failed' && t.error) {
+    const { summary, fix } = errorText(t.error);
+    app.log('error', `✗ ${t.label}: ${summary}`);
+    if (fix) app.log('error', `    Fix: ${fix}`);
+    return;
+  }
+  app.log('warn', `${t.label}: ${STATE_WORDS[t.state]}`);
 }
 
 async function copyUrl(t: TunnelStatus): Promise<void> {
@@ -191,7 +246,12 @@ function pickTarget(app: App): Promise<{ target: string; fallback: string } | un
   qp.title = 'Add Tunnel · 1 of 2 · Local service';
   qp.matchOnDescription = true;
   qp.ignoreFocusOut = true;
-  const state = { candidates: null as PortCandidate[] | null, showAll: false, typed: '' };
+  const state = {
+    candidates: null as PortCandidate[] | null,
+    showAll: false,
+    typed: '',
+    sharedNames: sharedNames(app.statuses),
+  };
   let closed = false;
   const render = () => {
     if (closed) return; // the scan can finish after the picker is gone
@@ -216,7 +276,7 @@ function pickTarget(app: App): Promise<{ target: string; fallback: string } | un
     .map((f) => f.uri.fsPath);
   void scanPorts(new NodePortScanner(), { workspaceFolders: folders, sharedPorts: sharedPorts(app.statuses) })
     .catch((e: unknown) => {
-      app.out.appendLine(`port scan failed: ${e instanceof Error ? e.message : String(e)}`);
+      app.out.warn(`Could not list the running services: ${e instanceof Error ? e.message : String(e)}`);
       return [];
     })
     .then((candidates) => {

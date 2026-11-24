@@ -1,21 +1,22 @@
 import * as vscode from 'vscode';
 import type { TunnelStatus } from '@everport/core';
-import { toItem } from './view-model.js';
+import { errorText } from './ui-text.js';
+import { toItem, type BusyVerb } from './view-model.js';
 
 export class TunnelsProvider implements vscode.TreeDataProvider<TunnelStatus> {
   private data: TunnelStatus[] = [];
-  private busy = new Set<string>();
+  private busy = new Map<string, BusyVerb>();
   private readonly changed = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.changed.event;
 
-  setData(ts: TunnelStatus[], busyIds: Iterable<string> = []): void {
+  setData(ts: TunnelStatus[], busy: ReadonlyMap<string, BusyVerb> = new Map()): void {
     this.data = ts;
-    this.busy = new Set(busyIds);
+    this.busy = new Map(busy);
     this.changed.fire();
   }
 
   getTreeItem(t: TunnelStatus): vscode.TreeItem {
-    const m = toItem(t, this.busy.has(t.id));
+    const m = toItem(t, this.busy.get(t.id), errorText);
     const item = new vscode.TreeItem(m.label, vscode.TreeItemCollapsibleState.None);
     item.id = m.id;
     item.description = m.description;

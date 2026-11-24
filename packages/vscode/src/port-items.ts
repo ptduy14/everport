@@ -21,6 +21,8 @@ export interface PickerState {
   candidates: PortCandidate[] | null;
   showAll: boolean;
   typed: string;
+  /** Local port → label of the tunnel that already shares it. */
+  sharedNames?: ReadonlyMap<number, string>;
 }
 
 export function pickerEntries(s: PickerState): PickEntry[] {
@@ -37,7 +39,12 @@ export function pickerEntries(s: PickerState): PickEntry[] {
     if (!rows.length) continue;
     out.push({ kind: 'separator', label: g.title });
     for (const c of rows) {
-      const notes = [c.shared ? 'Already shared by a tunnel' : '', c.http ? '' : 'No HTTP response'].filter(Boolean);
+      const name = s.sharedNames?.get(c.port);
+      const shared = name ? `Already shared as "${name}"` : 'Already shared by a tunnel';
+      const notes = [
+        c.shared ? `${shared} · adding it again gives it a second URL` : '',
+        c.http ? '' : "Doesn't answer HTTP · a web URL won't work for it",
+      ].filter(Boolean);
       out.push({
         kind: 'candidate',
         label: `$(${g.icon}) ${c.port}`,
@@ -73,15 +80,30 @@ export function suggestedLabel(c: PortCandidate, existing: TunnelStatus[]): stri
   return options.find((l) => !taken(l)) ?? String(c.port);
 }
 
+const localPort = (t: TunnelStatus): number | undefined => {
+  try {
+    const u = new URL(t.target);
+    const local = ['127.0.0.1', 'localhost', '[::1]', '0.0.0.0'].includes(u.hostname);
+    return local ? Number(u.port || (u.protocol === 'https:' ? 443 : 80)) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 /** Local ports that already have a tunnel. */
 export function sharedPorts(statuses: TunnelStatus[]): number[] {
   return statuses.flatMap((t) => {
-    try {
-      const u = new URL(t.target);
-      const local = ['127.0.0.1', 'localhost', '[::1]', '0.0.0.0'].includes(u.hostname);
-      return local ? [Number(u.port || (u.protocol === 'https:' ? 443 : 80))] : [];
-    } catch {
-      return [];
-    }
+    const port = localPort(t);
+    return port === undefined ? [] : [port];
   });
+}
+
+/** Local port → label of the first tunnel that shares it. */
+export function sharedNames(statuses: TunnelStatus[]): Map<number, string> {
+  const names = new Map<number, string>();
+  for (const t of statuses) {
+    const port = localPort(t);
+    if (port !== undefined && !names.has(port)) names.set(port, t.label);
+  }
+  return names;
 }
