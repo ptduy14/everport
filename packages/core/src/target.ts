@@ -38,3 +38,12 @@ export function normalizeTarget(input: string): string {
 function isValidPort(port: number): boolean {
   return Number.isInteger(port) && port >= 1 && port <= 65535;
 }
+
+const LOOPBACK = ['127.0.0.1', 'localhost', '[::1]'];
+
+/** `localhost:3000` for a plain local HTTP target; the full URL when it has https, another host or a path. */
+export function shortTarget(target: string): string {
+  const u = new URL(target);
+  const plain = u.protocol === 'http:' && LOOPBACK.includes(u.hostname) && u.pathname === '/' && !u.search;
+  return plain ? `localhost:${u.port || '80'}` : target;
+}

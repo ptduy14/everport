@@ -67,6 +67,15 @@ describe('login', () => {
     cloud.loginSucceeds = false;
     await expect(deployer.login()).rejects.toMatchObject({ code: 'NOT_LOGGED_IN' });
   });
+
+  it('says CANCELLED, not a failed login, when the person stops it', async () => {
+    const { cloud, deployer } = setup();
+    cloud.loggedIn = false;
+    const stop = new AbortController();
+    stop.abort();
+    await expect(deployer.login(stop.signal)).rejects.toMatchObject({ code: 'CANCELLED' });
+    expect(cloud.loggedIn).toBe(false);
+  });
 });
 
 describe('probeWorker', () => {

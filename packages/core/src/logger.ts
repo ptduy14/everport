@@ -15,6 +15,17 @@ export interface FileLoggerOptions {
   now?: () => Date;
 }
 
+const pad = (n: number, width = 2): string => String(n).padStart(width, '0');
+
+/** Local time with its UTC offset, `2026-11-23 20:14:03.512 +07:00`: readable, and still one exact instant. */
+export function localStamp(d: Date): string {
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
+  return `${date} ${time} ${sign}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
+}
+
 /** Appends lines to a file and rotates it by size. Writes are serialized; failures never throw. */
 export class FileLogger implements Logger {
   private queue: Promise<void> = Promise.resolve();
@@ -48,7 +59,7 @@ export class FileLogger implements Logger {
   }
 
   private write(level: string, msg: string): void {
-    const line = `${this.now().toISOString()} ${level} ${msg}\n`;
+    const line = `${localStamp(this.now())} ${level} ${msg}\n`;
     this.queue = this.queue.then(() => this.append(line)).catch(() => {});
   }
 

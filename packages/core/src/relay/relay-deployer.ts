@@ -80,9 +80,14 @@ export class RelayDeployer {
   }
 
   /** `wrangler login`: opens the browser and waits for the person. Everport never sees the credentials. */
-  async login(): Promise<void> {
-    const result = await this.deps.wrangler.run(['login'], { interactive: true, timeoutMs: 5 * 60_000 });
+  async login(signal?: AbortSignal): Promise<void> {
+    const result = await this.deps.wrangler.run(['login'], {
+      interactive: true,
+      timeoutMs: 5 * 60_000,
+      ...(signal && { signal }),
+    });
     this.loginCache = undefined;
+    if (signal?.aborted) throw new EverportError('CANCELLED', 'The Cloudflare login was cancelled');
     if (result.code !== 0 || !(await this.isLoggedIn({ fresh: true }))) {
       throw new EverportError('NOT_LOGGED_IN', 'The Cloudflare login did not finish', 'Run "everport login" again.');
     }

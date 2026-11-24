@@ -1,6 +1,6 @@
 export const PRODUCT_NAME = 'everport';
 
-export { normalizeTarget, InvalidTargetError } from './target.js';
+export { normalizeTarget, shortTarget, InvalidTargetError } from './target.js';
 export { EverportError, toEverportError, type EverportErrorCode } from './errors.js';
 export { EventBus, type EverportEvent, type EverportEventType, type EverportEventListener } from './events.js';
 export { FileLogger, nullLogger, type Logger } from './logger.js';

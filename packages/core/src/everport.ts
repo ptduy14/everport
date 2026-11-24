@@ -123,8 +123,8 @@ export class Everport {
   }
 
   /** `wrangler login`: opens the browser. Everport never sees the credentials. */
-  login(): Promise<void> {
-    return this.d.deployer.login();
+  login(options: { signal?: AbortSignal } = {}): Promise<void> {
+    return this.d.deployer.login(options.signal);
   }
 
   /**

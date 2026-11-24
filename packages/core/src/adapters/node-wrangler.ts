@@ -64,6 +64,7 @@ export class NodeWranglerRunner implements WranglerRunner {
     if (options.interactive) delete env['CI'];
     else env['CI'] = '1';
 
+    if (options.signal?.aborted) return Promise.resolve({ code: 130, stdout: '', stderr: 'cancelled' });
     return new Promise((resolve) => {
       const child = spawn(npx.command, [...npx.prefix, '-y', `wrangler@${this.version}`, ...args], {
         cwd: options.cwd,
@@ -83,13 +84,23 @@ export class NodeWranglerRunner implements WranglerRunner {
             resolve({ code: 124, stdout, stderr: `${stderr}\nwrangler did not finish in ${options.timeoutMs} ms` });
           }, options.timeoutMs)
         : undefined;
+      const onAbort = () => {
+        clearTimeout(timer);
+        if (child.pid) void new NodeProcessTable(this.platform).killTree(child.pid);
+        resolve({ code: 130, stdout, stderr: `${stderr}\ncancelled` });
+      };
+      options.signal?.addEventListener('abort', onAbort, { once: true });
+      const done = () => {
+        clearTimeout(timer);
+        options.signal?.removeEventListener('abort', onAbort);
+      };
 
       child.on('error', (e) => {
-        clearTimeout(timer);
+        done();
         resolve({ code: 127, stdout, stderr: `${stderr}\n${e.message}` });
       });
       child.on('close', (code) => {
-        clearTimeout(timer);
+        done();
         resolve({ code: code ?? 1, stdout, stderr });
       });
     });

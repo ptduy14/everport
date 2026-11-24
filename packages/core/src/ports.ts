@@ -12,6 +12,8 @@ export interface WranglerRunOptions {
   /** Lets wrangler use the terminal (for `login`). Without it `CI=1` is set so that nothing ever prompts or opens a browser. */
   interactive?: boolean;
   env?: Record<string, string>;
+  /** Stops wrangler (and its child processes); the run then resolves with code 130. */
+  signal?: AbortSignal;
 }
 
 /** Runs the pinned wrangler. Never rejects on a non-zero exit code. */

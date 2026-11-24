@@ -12,6 +12,7 @@ export type EverportErrorCode =
   | 'LOCKED'
   | 'TUNNEL_NOT_FOUND'
   | 'TUNNEL_EXISTS'
+  | 'CANCELLED'
   | 'INTERNAL';
 
 /** Error with a stable `code` for UIs and a `hint` telling the user what to do next. */

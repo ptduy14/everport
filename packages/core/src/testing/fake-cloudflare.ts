@@ -127,6 +127,7 @@ export class FakeCloudflare {
   private async dispatch(args: string[], options: WranglerRunOptions): Promise<CliResult> {
     const [command, sub] = args;
     if (command === 'login') {
+      if (options.signal?.aborted) return { code: 130, stdout: '', stderr: 'cancelled' };
       if (this.loginSucceeds) this.loggedIn = true;
       return this.loginSucceeds ? ok() : { code: 1, stdout: '', stderr: '' };
     }

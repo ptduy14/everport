@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InvalidTargetError, normalizeTarget } from './target.js';
+import { InvalidTargetError, normalizeTarget, shortTarget } from './target.js';
 
 describe('normalizeTarget', () => {
   it.each([
@@ -16,5 +16,14 @@ describe('normalizeTarget', () => {
 
   it.each(['', '   ', '0', '70000', 'localhost:99999', 'ftp://localhost:21', 'http://'])('rejects %j', (input) => {
     expect(() => normalizeTarget(input)).toThrow(InvalidTargetError);
+  });
+});
+
+describe('shortTarget', () => {
+  it('shortens a plain local HTTP target only', () => {
+    expect(shortTarget('http://127.0.0.1:3000')).toBe('localhost:3000');
+    expect(shortTarget('http://127.0.0.1:3000/api')).toBe('http://127.0.0.1:3000/api');
+    expect(shortTarget('https://127.0.0.1:3000')).toBe('https://127.0.0.1:3000');
+    expect(shortTarget('http://192.168.1.5:3000')).toBe('http://192.168.1.5:3000');
   });
 });

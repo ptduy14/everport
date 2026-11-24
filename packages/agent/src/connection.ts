@@ -97,6 +97,9 @@ const describeError = (e: unknown): string => {
   return e instanceof Error ? e.message : String(e);
 };
 
+/** Failed reconnects before the log says the tunnel is still offline. */
+const OFFLINE_WARN_ATTEMPTS = 3;
+
 export class TunnelConnection {
   private state: TunnelState = 'connecting';
   private since: number;
@@ -104,6 +107,9 @@ export class TunnelConnection {
   private current: WebSocket | null = null;
   private requests = new Map<number, ActiveRequest>();
   private attempt = 0;
+  /** When the last working connection dropped; undefined while connected or before the first one. */
+  private droppedAt: number | undefined;
+  private dropReason = '';
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private stopped = false;
   private token = '';
@@ -164,6 +170,13 @@ export class TunnelConnection {
     }
   }
 
+  /** Remembers the first drop of an outage; a socket that never opened is not a drop. */
+  private markDropped(reason: string): void {
+    if (this.droppedAt !== undefined || this.state !== 'connected') return;
+    this.droppedAt = this.now();
+    this.dropReason = reason;
+  }
+
   private setState(state: TunnelState, error?: string): void {
     if (error !== undefined) this.lastError = error;
     if (state === this.state) return;
@@ -188,7 +201,11 @@ export class TunnelConnection {
     const delay = fast
       ? this.timings.fastReconnectMs
       : backoffDelay(this.attempt++, this.random, this.timings.backoffBaseMs, this.timings.backoffMaxMs);
-    this.deps.logger.info(`tunnel ${this.config.name}: reconnecting in ${delay}ms`);
+    // A drop that heals on the first tries is normal and logged once, when it is back; say so only if it lasts.
+    if (this.attempt === OFFLINE_WARN_ATTEMPTS || (this.attempt > 0 && this.attempt % 20 === 0)) {
+      const why = this.lastError ? `: ${this.lastError}` : '';
+      this.deps.logger.warn(`tunnel ${this.config.name}: still offline after ${this.attempt} tries${why}`);
+    }
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = undefined;
       if (!this.stopped) this.connect();
@@ -217,7 +234,13 @@ export class TunnelConnection {
       this.attempt = 0;
       this.lastError = undefined;
       this.setState('connected');
-      logger.info(`tunnel ${name}: connected`);
+      if (this.droppedAt === undefined) {
+        logger.info(`tunnel ${name}: connected`);
+      } else {
+        const secs = ((this.now() - this.droppedAt) / 1000).toFixed(1);
+        logger.info(`tunnel ${name}: connection dropped${this.dropReason}, back online after ${secs} s`);
+        this.droppedAt = undefined;
+      }
       pingTimer = setInterval(() => {
         if (ws.readyState !== WebSocket.OPEN) return;
         ws.send('ping');
@@ -225,7 +248,7 @@ export class TunnelConnection {
         pongTimer = setTimeout(() => {
           pongTimer = undefined;
           if (ws !== this.current) return;
-          logger.warn(`tunnel ${name}: no pong, dropping the socket and reconnecting`);
+          this.markDropped(' (no answer from Cloudflare)');
           this.current = null;
           teardown();
           try {
@@ -248,13 +271,13 @@ export class TunnelConnection {
       if (ws !== this.current) return; // an older socket: its events no longer matter
       teardown();
       this.current = null;
-      logger.info(`tunnel ${name}: closed (${e.code} ${JSON.stringify(e.reason)})`);
       if (e.reason === REPLACED) {
         this.setState('replaced', 'another agent took this tunnel');
         logger.warn(`tunnel ${name}: another agent took this tunnel, stopping it here`);
         this.deps.onReplaced?.();
         return;
       }
+      this.markDropped(e.code === 1006 ? '' : ` (closed with code ${e.code})`);
       this.setState('connecting', this.lastError ?? `closed (${e.code})`);
       this.scheduleReconnect(false);
     };
