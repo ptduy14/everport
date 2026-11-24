@@ -112,7 +112,7 @@ describe('login', () => {
     });
     expect(await s.go('login')).toBe(1);
     expect(s.errText()).toContain('did not finish');
-    expect(s.errText()).toContain('Hint: Run "everport login" again.');
+    expect(s.errText()).toContain('Fix: run "everport login" again.');
   });
 });
 
@@ -173,7 +173,7 @@ describe('add', () => {
     });
     expect(await s.go('add', '3000')).toBe(1);
     expect(s.errText()).toContain('The agent exited');
-    expect(s.errText()).toContain('See the log.');
+    expect(s.errText()).toContain('Fix: see the log.');
   });
 
   it('reports a refusal with its hint, exit 1, for example when not logged in', async () => {
@@ -184,7 +184,7 @@ describe('add', () => {
     });
     expect(await s.go('add', '3000')).toBe(1);
     expect(s.errText()).toContain('Error: You are not logged in to Cloudflare');
-    expect(s.errText()).toContain('Hint: Run "everport login".');
+    expect(s.errText()).toContain('Fix: run "everport login".');
   });
 });
 
@@ -268,14 +268,14 @@ describe('ls, start, stop, rm, copy', () => {
     await s.go('ls', '--health');
     expect(s.manager.status).toHaveBeenCalledWith({ health: true });
     expect(s.text()).toContain('HEALTH');
-    expect(s.text()).toContain('preview gone');
+    expect(s.text()).toContain('missing');
     expect(s.errText()).toContain('everport up');
   });
 
   it('ls --health mentions relay code that is older than this Everport', async () => {
     const s = setup({ status: vi.fn(async () => [status({ health: 'ok', outdated: true })]) });
     await s.go('ls', '--health');
-    expect(s.errText()).toContain('older code');
+    expect(s.errText()).toContain('from an older Everport');
   });
 
   it('start and stop forward the id or label', async () => {
@@ -330,7 +330,7 @@ describe('doctor', () => {
     });
     expect(await s.go('doctor')).toBe(1);
     expect(s.text()).toContain('FAIL  cloudflare login: not logged in');
-    expect(s.text()).toContain('-> Run "everport login".');
+    expect(s.text()).toContain('Fix: run "everport login".');
   });
 
   it('--json prints the checks as JSON', async () => {

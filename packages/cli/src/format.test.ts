@@ -24,11 +24,11 @@ describe('renderTable', () => {
 describe('tunnelTable', () => {
   it('shows the columns and a readable state for every state', () => {
     const states: [TunnelStatus['state'], string][] = [
-      ['active', 'active'],
+      ['active', 'online'],
       ['stopped', 'stopped'],
-      ['down', 'agent down'],
-      ['missing', 'preview gone'],
-      ['failed', 'FAILED'],
+      ['down', 'offline'],
+      ['missing', 'missing'],
+      ['failed', 'error'],
     ];
     for (const [state, text] of states) expect(tunnelTable([status({ state })])).toContain(text);
     expect(tunnelTable([status()]).split('\n')[0]).toMatch(/^ID\s+LABEL\s+URL\s+TARGET\s+STATE$/);
@@ -37,6 +37,19 @@ describe('tunnelTable', () => {
   it('adds a HEALTH column only when some tunnel has health', () => {
     expect(tunnelTable([status()])).not.toContain('HEALTH');
     expect(tunnelTable([status({ health: 'ok' })])).toContain('HEALTH');
+  });
+
+  it('shows a plain local target short, like the VS Code view', () => {
+    expect(tunnelTable([status()])).toContain('localhost:3000');
+    expect(tunnelTable([status()])).not.toContain('http://127.0.0.1:3000');
+  });
+
+  it('colours only the state, after padding, so columns stay aligned', () => {
+    const red = (text: string) => `<${text}>`;
+    const lines = tunnelTable([status(), status({ id: 'x', label: 'be', state: 'failed' })], red).split('\n');
+    expect(lines[2]).toContain('<online');
+    expect(lines[3]).toContain('<error ');
+    expect(tunnelTable([status()])).not.toContain('<');
   });
 
   it('points at "everport add" when there is nothing', () => {
@@ -53,7 +66,7 @@ describe('tunnelWarnings', () => {
     const warnings = tunnelWarnings([
       status({ state: 'failed', error: { code: 'X', message: 'broke', hint: 'fix it' } }),
     ]);
-    expect(warnings).toEqual(['! fe: broke', '  fix it']);
+    expect(warnings).toEqual(['! fe: broke', '  Fix: fix it']);
   });
 
   it('does not repeat itself for a failed tunnel whose health also looks bad', () => {
@@ -84,7 +97,7 @@ describe('doctorLines', () => {
         { name: 'a', ok: true, detail: 'fine', hint: 'ignored' },
         { name: 'b', ok: false, detail: 'broken', hint: 'do this' },
       ]),
-    ).toEqual(['OK    a: fine', 'FAIL  b: broken', '      -> do this']);
+    ).toEqual(['OK    a: fine', 'FAIL  b: broken', '      Fix: do this']);
   });
 });
 

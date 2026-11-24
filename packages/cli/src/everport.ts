@@ -1,6 +1,7 @@
 import { createEverport } from '@everport/agent';
 import { WRANGLER_VERSION } from '@everport/core';
 import { copyToClipboard } from './clipboard.js';
+import { useColor } from './paint.js';
 import { run } from './program.js';
 import { resolveRuntimeFiles } from './runtime-files.js';
 
@@ -17,5 +18,6 @@ const code = await run(process.argv.slice(2), {
   err: (line) => console.error(line),
   copy: copyToClipboard,
   debug: process.env['EVERPORT_DEBUG'] === '1',
+  color: useColor(process.stdout.isTTY && process.stderr.isTTY, process.env),
 });
 process.exitCode = code;

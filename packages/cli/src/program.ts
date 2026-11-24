@@ -1,6 +1,7 @@
 import { Command, CommanderError } from 'commander';
 import { EverportError, type Everport, type StopOutcome, type TunnelStatus } from '@everport/core';
 import { doctorLines, subdomainNotice, tunnelTable, tunnelWarnings } from './format.js';
+import { ansi, lowerFirst, plain } from './paint.js';
 
 const DOWN_MESSAGES: Record<StopOutcome, string> = {
   stopped: 'Stopped. Your tunnels keep their addresses; run "everport up" to bring them back.',
@@ -24,6 +25,8 @@ export interface CliContext {
   err: (line: string) => void;
   copy: (text: string) => Promise<void>;
   debug?: boolean;
+  /** Colour the output (a person at a terminal, no NO_COLOR). */
+  color?: boolean;
 }
 
 const EXIT_ERROR = 1;
@@ -52,9 +55,10 @@ export async function run(argv: string[], ctx: CliContext): Promise<number> {
     return m;
   };
 
+  const paint = ctx.color ? ansi : plain;
   const printTunnels = (tunnels: TunnelStatus[]) => {
-    ctx.out(tunnelTable(tunnels));
-    for (const w of tunnelWarnings(tunnels)) ctx.err(w);
+    ctx.out(tunnelTable(tunnels, paint));
+    for (const w of tunnelWarnings(tunnels, paint)) ctx.err(w);
   };
 
   program
@@ -191,7 +195,7 @@ export async function run(argv: string[], ctx: CliContext): Promise<number> {
       task(async (opts: { json?: boolean }) => {
         const checks = await (await ctx.createManager()).doctor();
         if (opts.json) ctx.out(JSON.stringify(checks, null, 2));
-        else for (const l of doctorLines(checks)) ctx.out(l);
+        else for (const l of doctorLines(checks, paint)) ctx.out(l);
         return checks.every((c) => c.ok) ? 0 : EXIT_ERROR;
       }),
     );
@@ -217,8 +221,9 @@ async function copyUrl(ctx: CliContext, url: string): Promise<void> {
 
 function reportError(e: unknown, ctx: CliContext): number {
   if (e instanceof EverportError) {
-    ctx.err(`Error: ${e.message}`);
-    if (e.hint) ctx.err(`Hint: ${e.hint}`);
+    const paint = ctx.color ? ansi : plain;
+    ctx.err(paint(`Error: ${e.message}`, 'red'));
+    if (e.hint) ctx.err(`Fix: ${lowerFirst(e.hint)}`);
   } else {
     ctx.err(`Unexpected error: ${e instanceof Error ? e.message : String(e)}`);
     if (ctx.debug && e instanceof Error && e.stack) ctx.err(e.stack);

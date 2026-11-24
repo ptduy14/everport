@@ -1,24 +1,44 @@
-import type { DoctorCheck, TunnelStatus } from '@everport/core';
+import { shortTarget, type DoctorCheck, type TunnelStatus } from '@everport/core';
+import { lowerFirst, plain, type Paint, type Style } from './paint.js';
 
-export function renderTable(headers: string[], rows: string[][]): string {
+/** Pads on the plain text, then lets `paint` colour a cell, so colour codes never break the columns. */
+export function renderTable(
+  headers: string[],
+  rows: string[][],
+  paintCell: (cell: string, row: number, col: number) => string = (c) => c,
+): string {
   const widths = headers.map((h, i) => Math.max(h.length, ...rows.map((r) => (r[i] ?? '').length)));
-  const line = (cells: string[]) =>
+  const line = (cells: string[], row: number) =>
     cells
-      .map((c, i) => c.padEnd(widths[i] ?? 0))
+      .map((c, i) => (row < 0 ? c.padEnd(widths[i] ?? 0) : paintCell(c.padEnd(widths[i] ?? 0), row, i)))
       .join('  ')
       .trimEnd();
-  return [line(headers), line(widths.map((w) => '-'.repeat(w))), ...rows.map(line)].join('\n');
+  return [
+    line(headers, -1),
+    line(
+      widths.map((w) => '-'.repeat(w)),
+      -1,
+    ),
+    ...rows.map((r, i) => line(r, i)),
+  ].join('\n');
 }
 
+/** Same words as the VS Code view; `--json` keeps the raw state. */
 const STATE_TEXT: Record<TunnelStatus['state'], string> = {
-  active: 'active',
+  active: 'online',
   stopped: 'stopped',
-  down: 'agent down',
-  missing: 'preview gone',
-  failed: 'FAILED',
+  down: 'offline',
+  missing: 'missing',
+  failed: 'error',
 };
 
-export function tunnelTable(tunnels: TunnelStatus[]): string {
+const STATE_STYLE: Partial<Record<TunnelStatus['state'], Style>> = {
+  active: 'green',
+  missing: 'yellow',
+  failed: 'red',
+};
+
+export function tunnelTable(tunnels: TunnelStatus[], paint: Paint = plain): string {
   if (tunnels.length === 0) return 'No tunnels yet. Add one with: everport add <port>';
   const withHealth = tunnels.some((t) => t.health !== undefined);
   const headers = ['ID', 'LABEL', 'URL', 'TARGET', 'STATE', ...(withHealth ? ['HEALTH'] : [])];
@@ -26,40 +46,48 @@ export function tunnelTable(tunnels: TunnelStatus[]): string {
     t.id,
     t.label,
     t.url,
-    t.target,
+    shortTarget(t.target),
     STATE_TEXT[t.state],
     ...(withHealth ? [t.health ?? '-'] : []),
   ]);
-  return renderTable(headers, rows);
+  const stateCol = headers.indexOf('STATE');
+  return renderTable(headers, rows, (cell, row, col) => {
+    const style = col === stateCol ? STATE_STYLE[tunnels[row]!.state] : undefined;
+    return style ? paint(cell, style) : cell;
+  });
 }
 
+const fix = (hint: string): string => `  Fix: ${lowerFirst(hint)}`;
+
 /** Problems worth a line under the table: failed tunnels and health findings, each with its fix. */
-export function tunnelWarnings(tunnels: TunnelStatus[]): string[] {
+export function tunnelWarnings(tunnels: TunnelStatus[], paint: Paint = plain): string[] {
   const out: string[] = [];
+  const problem = (text: string) => out.push(paint(`! ${text}`, 'red'));
   for (const t of tunnels) {
     if (t.state === 'failed' && t.error) {
-      out.push(`! ${t.label}: ${t.error.message}`);
-      if (t.error.hint) out.push(`  ${t.error.hint}`);
+      problem(`${t.label}: ${t.error.message}`);
+      if (t.error.hint) out.push(fix(t.error.hint));
       continue;
     }
     if (t.state === 'missing') {
-      out.push(`! ${t.label}: the preview is gone from Cloudflare.`);
-      out.push('  Run "everport up": it brings the tunnel back at the same address.');
+      problem(`${t.label}: the URL is gone from Cloudflare.`);
+      out.push(fix('Run "everport up": it brings the tunnel back at the same address.'));
     } else if (t.health === 'unreachable') {
-      out.push(`! ${t.label}: cannot reach the public address. Check your connection.`);
+      problem(`${t.label}: cannot reach the public address.`);
+      out.push(fix('Check your connection.'));
     }
     if (t.outdated) {
-      out.push(`i ${t.label}: the relay on Cloudflare runs older code than this version of Everport.`);
+      out.push(paint(`i ${t.label}: the relay on Cloudflare is from an older Everport. It still works.`, 'dim'));
     }
   }
   return out;
 }
 
-export function doctorLines(checks: DoctorCheck[]): string[] {
+export function doctorLines(checks: DoctorCheck[], paint: Paint = plain): string[] {
   const out: string[] = [];
   for (const c of checks) {
-    out.push(`${c.ok ? 'OK  ' : 'FAIL'}  ${c.name}: ${c.detail}`);
-    if (!c.ok && c.hint) out.push(`      -> ${c.hint}`);
+    out.push(`${c.ok ? paint('OK  ', 'green') : paint('FAIL', 'red')}  ${c.name}: ${c.detail}`);
+    if (!c.ok && c.hint) out.push(`    ${fix(c.hint)}`);
   }
   return out;
 }
