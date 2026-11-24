@@ -14,7 +14,7 @@ This page says how other free options behave for that job and where each stateme
 
 ## Where each statement comes from
 
-- **Our own runs (November 2026, one run each).** Everport and Cloudflare Quick Tunnel on the "warning page" and "streaming" columns; zrok on all three columns, with an older client version. For streaming we sent one event per second: through Everport the ticks arrived about one second apart (a 45 second stream delivered all 15 ticks); through Quick Tunnel five ticks arrived together at the end, after about six seconds. For the warning page we requested a script as a browser would: zrok's free plan returned an HTML warning page instead of the JavaScript.
+- **Our own runs (November 2026, one run each).** Everport and Cloudflare Quick Tunnel on the "warning page" and "streaming" columns; zrok on all three columns, with an older client version. For streaming we sent one event per second: through Everport the ticks arrived about one second apart (a 45 second stream delivered all 15 ticks); through Quick Tunnel five ticks arrived together at the end, after about six seconds. For the warning page we requested a script as a browser would: zrok's free plan returned an HTML warning page instead of the JavaScript. Everport was also tested inside ChatGPT: an MCP app loaded its widget bundle from an Everport URL in ChatGPT's sandboxed iframe.
 - **Vendor documentation (marked "docs").** We did not test these.
   - ngrok free plan: one assigned dev domain, and a browser warning page that visitors click through, which can be skipped by clients that send a special header: [free plan limits](https://ngrok.com/docs/pricing-limits/free-plan-limits.md).
   - Cloudflare Quick Tunnel: the hostname changes each time you create one, and Server-Sent Events are not supported: [Quick Tunnels](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/). Our streaming run agrees with the second point.
@@ -23,6 +23,5 @@ This page says how other free options behave for that job and where each stateme
 
 ## What we have not tested
 
-- Everport inside ChatGPT's sandboxed iframe. It is the use Everport was designed for, and it has not been verified there.
 - VS Code port forwarding and Microsoft Dev Tunnels. We make no statement about them.
 - Long sessions, quota use over many hours, and the 100-preview limit.

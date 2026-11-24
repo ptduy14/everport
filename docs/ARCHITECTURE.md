@@ -29,7 +29,7 @@ local service
 <!-- TODO(diagram): replace with a drawn sequence diagram (request down, response streamed back) -->
 
 - **No Everport server.** Everything runs in your account. Nothing is shared between users.
-- **One tunnel = one preview = one hostname = one Durable Object.** A _preview_ is a named copy of a Worker with its own `workers.dev` hostname, variables, secrets and Durable Object namespace (a recent Cloudflare feature that Cloudflare can still change).
+- **One tunnel = one preview = one hostname = one Durable Object.** A _preview_ is a named copy of a Worker with its own `workers.dev` hostname, variables, secrets and Durable Object namespace (a Cloudflare feature that its `wrangler preview` command labels open beta).
 - The computer only calls out: no port is opened.
 
 ## Packages
@@ -109,6 +109,8 @@ In the data folder (see the README): `tunnels.json` (the tunnels you want, with 
 
 A health check adds `ok`, `not-found`, `mismatch` (a foreign Worker answers) or `unreachable`, and an `outdated` flag when the relay on Cloudflare runs older code than the installed Everport.
 
+These are the names in the API and in `--json`. The CLI and the VS Code view show them to people as online, stopped, offline, missing and error (see [Tunnel states](reference.md#tunnel-states)). The core's hints name CLI commands; the extension rewords them as its own buttons, so both share one set of error codes.
+
 ## Security model
 
 - A tunnel's public URL is public by design; anyone who knows it can reach the local service.
@@ -127,7 +129,7 @@ Unit tests run with fakes and need no network. The agent is tested over real soc
 - **Your account, not a shared service.** A shared relay would make Everport an operated service: shared quota, an open proxy to abuse, privacy and terms-of-service questions, a single point of failure.
 - **One preview per tunnel, not one Worker routing by path.** A preview has its own hostname, so apps with absolute paths such as `<script src="/app.js">` work. Path routing breaks silently for them.
 - **No automatic fallback.** If Previews change, tunnels may stop. Everport does not quietly switch strategy, because that would change your URLs; the planned fallback is explicit and announced ([docs/contingency.md](contingency.md)).
-- **A pinned wrangler through `npx`.** Previews are a recent Cloudflare feature and the tool moves; pinning keeps behaviour predictable. An installed copy was slightly faster but sometimes missing a binary.
+- **A pinned wrangler through `npx`.** Previews are an open beta and the tool moves; pinning keeps behaviour predictable. An installed copy was slightly faster but sometimes missing a binary.
 - **A background agent, not an in-editor process.** That is what lets tunnels outlive the editor.
 
 ## Known limits

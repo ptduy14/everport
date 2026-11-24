@@ -17,7 +17,19 @@ Details for people who already use Everport. To get started, see the [README](..
 
 `<target>` is a port (`3000`), `host:port`, or a full URL. A bare port means `127.0.0.1`.
 
-Results (URLs, tables, JSON) go to stdout. Progress and errors go to stderr, so `--json` and pipes stay clean. Exit code `0` is success, `1` an error or a failed tunnel, `2` wrong usage.
+Results (URLs, tables, JSON) go to stdout. Progress and errors go to stderr, so `--json` and pipes stay clean. Every problem is followed by a line that starts with `Fix:`. Colours are used only when the output is a terminal; set `NO_COLOR` to turn them off. Exit code `0` is success, `1` an error or a failed tunnel, `2` wrong usage.
+
+## Tunnel states
+
+The CLI (`ls`) and the VS Code view use the same words. `--json` keeps the raw state name.
+
+| CLI       | VS Code | `--json`  | Meaning                                                                                                 |
+| --------- | ------- | --------- | ------------------------------------------------------------------------------------------------------- |
+| `online`  | Online  | `active`  | The public URL is served by your local service.                                                         |
+| `stopped` | Stopped | `stopped` | You turned the tunnel off. Its URL is kept.                                                             |
+| `offline` | Offline | `down`    | The background agent is not running, usually after a reboot. `everport up` or **Start** brings it back. |
+| `missing` | Missing | `missing` | The URL is gone from Cloudflare. `everport up` or **Start** recreates it at the same address.           |
+| `error`   | Error   | `failed`  | The last operation failed. The reason and its fix are shown with it.                                    |
 
 ## Environment variables
 
@@ -26,12 +38,13 @@ Results (URLs, tables, JSON) go to stdout. Progress and errors go to stderr, so 
 | `EVERPORT_DATA_DIR`    | Where Everport keeps its files.                                                |
 | `EVERPORT_WORKER_NAME` | Name of the relay Worker (default `everport`); used when the relay is created. |
 | `EVERPORT_DEBUG=1`     | Print stack traces for unexpected errors.                                      |
+| `NO_COLOR`             | Turn off colours in the CLI output (see [no-color.org](https://no-color.org)). |
 
 ## Data folder
 
 By default: `%LOCALAPPDATA%\everport` on Windows, `~/Library/Application Support/everport` on macOS, and `$XDG_DATA_HOME/everport` or `~/.local/share/everport` on Linux. Set `EVERPORT_DATA_DIR` to put it elsewhere.
 
-It holds `tunnels.json` (your tunnels), `relay-secret` (the shared secret between the agent and the relay) and `logs/`.
+It holds `tunnels.json` (your tunnels), `relay-secret` (the shared secret between the agent and the relay) and `logs/`. In `logs/`, `agent.log` is the background agent's record of its connections (a dropped connection that comes back is one line; one that stays down is a warning) and `everport.log` holds Everport's own notes. Times are local, with the UTC offset. In VS Code, **Show Log** opens the Everport output channel, which prints the path of `agent.log` at the top.
 
 ## Cloudflare login and wrangler
 
@@ -61,7 +74,7 @@ The first `everport add` also creates the relay Worker in your Cloudflare accoun
 | Setting                | Default | Meaning                                                                                                          |
 | ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
 | `everport.startOnOpen` | off     | Start your enabled tunnels when VS Code opens. Off by default because starting makes your local services public. |
-| `everport.nodePath`    | empty   | Path to a Node.js 22.12+ executable. Needed when VS Code starts without your shell's `PATH` (common on macOS).   |
+| `everport.nodePath`    | empty   | The Node.js (22.12 or newer) Everport runs on. Empty picks one automatically (see below).                        |
 
 Commands are under the **Everport** category in the Command Palette: Add Tunnel, Start All, Stop All, Start, Stop, Retry, Copy URL, Open in Browser, Check Health, Remove, Run Doctor, Show Log, Refresh and Log in to Cloudflare.
 
@@ -73,7 +86,7 @@ Everport needs Node.js **22.12 or newer**. The floor comes from the Cloudflare t
 2. Otherwise it uses `node` from the `PATH` that VS Code has. VS Code started from the Start menu, the Dock or a launcher does not have your shell's `PATH`, so with fnm, nvm or Volta it may find no Node.js, or an older one installed system-wide.
 3. If that is missing or older than 22.12, it looks in the folders of fnm, nvm, Volta and asdf (and the usual system places such as Homebrew and `Program Files\nodejs`) and uses the newest version that wrangler runs on. The Everport output channel says which one it picked.
 
-To choose yourself, run **Everport: Select Node.js** from the Command Palette (or press **Choose Node.js** in the Everport view): it lists the versions it found and lets you browse for a `node` executable. Or set `everport.nodePath` to the result of `node -p process.execPath` run in a terminal where the right Node.js is active.
+To choose yourself, run **Everport: Select Node.js** from the Command Palette (or press **Choose Node.js** in the Everport view): it lists the versions it found, marks the one in use and where each comes from (fnm, nvm, Volta, asdf or system), and lets you browse for a `node` executable. **Pick automatically** clears the setting and goes back to the steps above. Or set `everport.nodePath` to the result of `node -p process.execPath` run in a terminal where the right Node.js is active.
 
 Everport runs wrangler on the Node.js it picked, whatever the editor's own `PATH` says.
 
@@ -97,8 +110,10 @@ Start with `everport doctor`: it checks each piece and prints a fix for every fa
 - **A tunnel shows `missing`**: its preview was lost on Cloudflare. `everport up` recreates it at the same address.
 - **A tunnel shows a health of `mismatch`**: another Worker answers at that address. Remove the tunnel and add it again.
 - **The first command takes a minute**: wrangler is downloaded once through `npx`, then cached.
-- **VS Code says it needs Node.js 22.12, but your terminal has it**: VS Code did not inherit your shell's `PATH`. See [Node version managers](#node-version-managers).
+- **VS Code says it needs Node.js 22.12, but your terminal has it**: VS Code did not inherit your shell's `PATH`. See [Node.js and version managers](#nodejs-and-version-managers).
 - **An error says Wrangler requires at least Node.js v22.12.0**: the Node.js that runs wrangler is older than that. Switch to a newer Node.js, or set `everport.nodePath`.
+- **Tunnels show `offline` after a reboot**: nothing starts the agent when your computer boots. Run `everport up`, or click **Start All** in VS Code.
+- **A tunnel shows "Error: opened in another window"**: another VS Code window or the CLI took the tunnel over. **Retry** takes it back to this window, and the other one loses it.
 
 ## Cloudflare limits
 
