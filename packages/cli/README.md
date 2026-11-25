@@ -56,7 +56,7 @@ How it compares with ngrok, Cloudflare Quick Tunnel, zrok and Tailscale Funnel, 
 ![A public request reaches a Worker preview and a Durable Object in your Cloudflare account, then travels down a WebSocket that the Everport agent opened from your computer beforehand, and the agent calls your local service. The public URL stays the same after a restart.](https://raw.githubusercontent.com/ptduy14/everport/main/docs/everport-flow.svg)
 
 1. A caller (a webhook, a browser, an AI connector) requests your public address.
-2. A Worker in your Cloudflare account, one per tunnel, passes the request to a Durable Object.
+2. The relay Worker in your Cloudflare account, through a preview of it made for this tunnel, passes the request to a Durable Object.
 3. The Everport agent on your computer has already opened a WebSocket to that Durable Object, so the request travels down it.
 4. The agent calls your local service, and the response goes back the same way.
 

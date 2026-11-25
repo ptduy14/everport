@@ -84,7 +84,7 @@ A background Node process, started detached so it outlives the terminal or edito
 
 ## Deploying to Cloudflare
 
-Everport drives Cloudflare's `wrangler` tool, pinned to one exact version and run through `npx` (as `node npx-cli.js`, without a shell), always with `CI=1` so it never opens a browser or asks questions.
+Everport drives Cloudflare's `wrangler` tool, pinned to one exact version and run through `npx` (as `node npx-cli.js`, without a shell), with `CI=1` so it never opens a browser or asks questions. The one exception is `login`, which needs the browser.
 
 - A preview is created with `wrangler preview --name <label> --worker-name <worker> --var TUNNEL:<label> --secrets-file <file> --json`. The real slug and URL are read from the JSON; hostnames are never computed.
 - The first preview also creates the Worker, so it is created alone (creating several at once on a new Worker races). Later ones can run in parallel.
