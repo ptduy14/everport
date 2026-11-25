@@ -551,13 +551,14 @@ export class Everport {
 
     if (!tunnel.enabled) return withHealth({ ...base, state: 'stopped' });
     if (error) return withHealth({ ...base, state: 'failed', error });
+    // A preview that is gone is the thing to fix, whatever the agent is doing: `up` brings it back.
+    if (health?.health === 'not-found') return withHealth({ ...base, state: 'missing' });
 
     const served = info?.tunnels.find((t) => t.name === tunnel.name);
     if (!info || !served) return withHealth({ ...base, state: 'down' });
     const agentError = this.agentError(served);
     if (agentError) return withHealth({ ...base, state: 'failed', error: agentError });
     if (served.state === 'connected') {
-      if (health?.health === 'not-found') return withHealth({ ...base, state: 'missing' });
       if (health?.health === 'mismatch') {
         return withHealth({
           ...base,

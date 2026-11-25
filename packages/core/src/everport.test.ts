@@ -429,6 +429,17 @@ describe('status', () => {
     expect(by['be']).toMatchObject({ state: 'failed', health: 'mismatch', error: { code: 'RELAY_MISMATCH' } });
   });
 
+  it('shows a gone preview as missing even when the agent is stopped or still reconnecting', async () => {
+    const { everport, cloud, agent } = await withTunnels('fe', 'be');
+    cloud.worker(WORKER)!.previews.delete('fe');
+    cloud.worker(WORKER)!.previews.delete('be');
+    agent.tunnels.get('be')!.state = 'connecting';
+    const reconnecting = Object.fromEntries((await everport.status({ health: true })).map((s) => [s.label, s]));
+    expect(reconnecting['be']).toMatchObject({ state: 'missing', health: 'not-found' });
+    await everport.down();
+    expect((await everport.status({ health: true }))[0]).toMatchObject({ state: 'missing', health: 'not-found' });
+  });
+
   it('flags a relay that runs older code than this Everport', async () => {
     const { everport, fs } = setup();
     fs.seed('/bundle/worker.js', '// fake relay worker, code version 0');
