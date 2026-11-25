@@ -72,7 +72,7 @@ The core follows **ports and adapters**: it never calls `child_process`, `fetch`
 
 Text messages are only for keep-alive: the agent sends `ping`, the runtime answers `pong`.
 
-**Flow.** The Durable Object sends `REQ_HEAD`, the body chunks and `REQ_END`. The agent collects the whole request body, calls the local service, and sends back `RES_HEAD`, the chunks and `RES_END`. **Responses are streamed**, so server-sent events arrive tick by tick. With no agent connected the relay answers `503 tunnel offline`; waiting more than 30 s for a response head gives `504` and a `RESET`. Headers that only make sense hop by hop are filtered.
+**Flow.** The Durable Object sends `REQ_HEAD`, the body chunks and `REQ_END`. The agent collects the whole request body, calls the local service, and sends back `RES_HEAD`, the chunks and `RES_END`. **Responses are streamed**, so server-sent events arrive tick by tick. With no agent connected the relay answers `503 tunnel offline`; waiting more than 30 s for a response head gives `504` and a `RESET`. When the local service cannot be reached the agent answers `502` with a plain-text body that says so ("this tunnel works, but nothing is running on localhost:3000"), so whoever reads the caller's logs knows the tunnel is not at fault. Headers that only make sense hop by hop are filtered.
 
 **Cancelling.** If the caller goes away, the Durable Object sends `RESET` and the agent aborts its local request. On Cloudflare previews this takes about 30 seconds to reach the local service; other requests are not blocked meanwhile.
 

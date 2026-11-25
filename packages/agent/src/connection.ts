@@ -1,6 +1,6 @@
 // One tunnel: a WebSocket to the relay, kept alive and reconnected, that turns relay requests into calls
 // to a local service. The wire format and the token come from @everport/relay.
-import type { Logger } from '@everport/core';
+import { shortTarget, type Logger } from '@everport/core';
 import {
   CHUNK_SIZE,
   FrameType,
@@ -96,6 +96,21 @@ const describeError = (e: unknown): string => {
   if (cause instanceof Error) return cause.message;
   return e instanceof Error ? e.message : String(e);
 };
+
+/** The local call failed because nothing listens there: the app behind the tunnel is not running. */
+export const appNotRunning = (e: unknown): boolean => {
+  // fetch wraps the socket error in `cause`
+  const code = (x: unknown) => (x as { code?: unknown } | undefined)?.code;
+  return code(e) === 'ECONNREFUSED' || code(e instanceof Error ? e.cause : undefined) === 'ECONNREFUSED';
+};
+
+/** What the caller reads in the 502 body: who failed, and that it is not the tunnel. */
+export function localErrorBody(e: unknown, target: string): string {
+  return appNotRunning(e)
+    ? `Everport: this tunnel works, but nothing is running on ${shortTarget(target)} on the developer's computer. ` +
+        'Start the app and try again.\n'
+    : `Everport: the app on ${shortTarget(target)} failed to answer: ${describeError(e)}\n`;
+}
 
 /** Failed reconnects before the log says the tunnel is still offline. */
 const OFFLINE_WARN_ATTEMPTS = 3;
@@ -370,7 +385,7 @@ export class TunnelConnection {
     } catch (e) {
       if (abort.signal.aborted) return;
       if (!headSent) {
-        const message = new TextEncoder().encode(`local server error: ${describeError(e)}`);
+        const message = new TextEncoder().encode(localErrorBody(e, this.target));
         const errorHead = encodeResponseHead({ status: 502, headers: [['content-type', 'text/plain; charset=utf-8']] });
         await this.send(ws, encodeFrame(FrameType.RES_HEAD, id, errorHead));
         await this.send(ws, encodeFrame(FrameType.RES_DATA, id, message));

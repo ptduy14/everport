@@ -4,7 +4,7 @@ import { gzipSync } from 'node:zlib';
 import { FakeRelay } from '@everport/relay/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import { RelayAgent, type RelayAgentOptions } from './agent.js';
-import { buildTargetUrl } from './connection.js';
+import { buildTargetUrl, localErrorBody } from './connection.js';
 import { FAST, SECRET, readBody, silentLogger, sleep, startOrigin, waitFor, type Origin } from './testing/helpers.js';
 
 const cleanup: (() => Promise<void> | void)[] = [];
@@ -131,7 +131,18 @@ describe('RelayAgent: forwarding requests', () => {
     await waitFor(() => relay.connectedAgents === 1);
     const res = await fetch(`${base}/anything`);
     expect(res.status).toBe(502);
-    expect(await res.text()).toContain('local server error');
+    expect(await res.text()).toBe(
+      "Everport: this tunnel works, but nothing is running on localhost:1 on the developer's computer. Start the app and try again.\n",
+    );
+  });
+
+  it('answers 502 naming the app when it fails in another way', () => {
+    const reset = Object.assign(new Error('fetch failed'), {
+      cause: Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+    });
+    expect(localErrorBody(reset, 'http://127.0.0.1:3000')).toBe(
+      'Everport: the app on localhost:3000 failed to answer: socket hang up\n',
+    );
   });
 
   it('stops the local call when the caller gives up midway', async () => {

@@ -111,7 +111,7 @@ Start with `everport doctor`: it checks each piece and prints a fix for every fa
 
 - **"You are not logged in to Cloudflare"**: run `everport login`, or set the API token variables.
 - **The URL answers `503 tunnel offline`**: the agent is not running. Run `everport up`.
-- **The URL answers `502` with "local server error"**: the tunnel works, but your local service is not running or refused the call. Start it; `everport ls` and the VS Code view say so too.
+- **The URL answers `502` "this tunnel works, but nothing is running on localhost:…"**: your app is not running. Start it; nothing is wrong with the tunnel. Another `502` "the app on localhost:… failed to answer" means the app is running but dropped the call.
 - **A tunnel shows `missing`**: its preview was lost on Cloudflare. `everport up` recreates it at the same address.
 - **A tunnel shows a health of `mismatch`**: another Worker answers at that address. Remove the tunnel and add it again.
 - **The first command takes a minute**: wrangler is downloaded once through `npx`, then cached.
