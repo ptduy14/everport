@@ -260,12 +260,17 @@ export class Everport {
     return this.locked(() => this.d.agent.stop());
   }
 
-  /** Removes the preview from Cloudflare first (the step that can fail), then from the agent and the configuration. */
-  remove(idOrLabel: string): Promise<void> {
+  /**
+   * Removes the preview from Cloudflare first (the step that can fail), then from the agent and the configuration.
+   * `localOnly` skips Cloudflare, for when it cannot be reached or the Worker is gone; the preview may then remain.
+   */
+  remove(idOrLabel: string, options: { localOnly?: boolean } = {}): Promise<void> {
     return this.locked(async () => {
       const config = await this.store.load();
       const tunnel = findTunnel(config, idOrLabel);
-      await this.d.deployer.removeTunnel(config.relay?.workerName ?? this.workerName, tunnel.name);
+      if (!options.localOnly) {
+        await this.d.deployer.removeTunnel(config.relay?.workerName ?? this.workerName, tunnel.name);
+      }
       await this.d.agent.removeTunnel(tunnel.name).catch(() => false); // an agent that is not there is fine
       await this.store.mutate((c) => {
         c.tunnels = c.tunnels.filter((t) => t.id !== tunnel.id);

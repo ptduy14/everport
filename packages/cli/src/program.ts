@@ -165,9 +165,22 @@ export async function run(argv: string[], ctx: CliContext): Promise<number> {
     .command('rm <tunnel>')
     .alias('remove')
     .description('Remove a tunnel and its preview on Cloudflare; <tunnel> is an id or label')
+    .option('--local', 'remove it from this computer only, when Cloudflare cannot be reached (the preview may remain)')
     .action(
-      task(async (tunnel: string) => {
-        await (await manager()).remove(tunnel);
+      task(async (tunnel: string, opts: { local?: boolean }) => {
+        const m = await manager();
+        if (opts.local) {
+          await m.remove(tunnel, { localOnly: true });
+          ctx.out('Removed from this computer. Its preview may still be on Cloudflare.');
+          return;
+        }
+        try {
+          await m.remove(tunnel);
+        } catch (e) {
+          if (!(e instanceof EverportError) || ['TUNNEL_NOT_FOUND', 'LOCKED'].includes(e.code)) throw e;
+          const local = `If Cloudflare stays out of reach, run "everport rm ${tunnel} --local" to remove it from this computer only.`;
+          throw new EverportError(e.code, e.message, e.hint ? `${e.hint} ${local}` : local);
+        }
         ctx.out('Removed. Its public address no longer works.');
       }),
     );

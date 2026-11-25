@@ -383,6 +383,17 @@ describe('remove', () => {
     expect(agent.tunnels.has('fe')).toBe(true);
   });
 
+  it('can remove a tunnel from this computer only, without asking Cloudflare', async () => {
+    const { everport, cloud, agent, store } = await withTunnels('fe', 'be');
+    cloud.failCommand = { prefix: ['preview', 'delete'], text: 'the Cloudflare API is down' };
+    cloud.calls.length = 0;
+    await everport.remove('fe', { localOnly: true });
+    expect(cloud.calls).toEqual([]);
+    expect(cloud.preview(WORKER, 'fe')).toBeDefined(); // left on Cloudflare
+    expect([...agent.tunnels.keys()]).toEqual(['be']);
+    expect((await store.load()).tunnels.map((t) => t.label)).toEqual(['be']);
+  });
+
   it('says TUNNEL_NOT_FOUND for an unknown tunnel', async () => {
     const { everport } = setup();
     await expect(everport.remove('nope')).rejects.toMatchObject({ code: 'TUNNEL_NOT_FOUND' });

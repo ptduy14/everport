@@ -11,7 +11,7 @@ Details for people who already use Everport. To get started, see the [README](..
 | `up [--json]` / `down`                | Starts or stops the background agent and every enabled tunnel. `up` restores a lost preview.   |
 | `ls` (`status`) `[--json] [--health]` | Lists tunnels. `--health` asks each public address who answers.                                |
 | `start` / `stop <tunnel>`             | Turns one tunnel on or off. `<tunnel>` is its id or label.                                     |
-| `rm` (`remove`) `<tunnel>`            | Removes the tunnel and its preview. The address stops working.                                 |
+| `rm` (`remove`) `<tunnel> [--local]`  | Removes the tunnel and its preview. The address stops working. `--local`: this computer only.  |
 | `copy <tunnel>`                       | Copies the URL to the clipboard.                                                               |
 | `doctor [--json]`                     | Checks Node, wrangler, login, the data folder and the relay, and says how to fix each failure. |
 
@@ -114,6 +114,7 @@ Start with `everport doctor`: it checks each piece and prints a fix for every fa
 - **The first command takes a minute**: wrangler is downloaded once through `npx`, then cached.
 - **VS Code says it needs Node.js 22.12, but your terminal has it**: VS Code did not inherit your shell's `PATH`. See [Node.js and version managers](#nodejs-and-version-managers).
 - **An error says Wrangler requires at least Node.js v22.12.0**: the Node.js that runs wrangler is older than that. Switch to a newer Node.js, or set `everport.nodePath`.
+- **A tunnel cannot be removed because Cloudflare cannot be reached** (offline, logged out, or the Worker was deleted by hand): `everport rm <tunnel> --local`, or **Remove from List Only** in VS Code, forgets it on this computer. Its preview may stay on Cloudflare; delete it in the Cloudflare dashboard if needed.
 - **Tunnels show `offline` after a reboot**: nothing starts the agent when your computer boots. Run `everport up`, or click **Start All** in VS Code.
 - **A tunnel shows "Error: opened in another window"**: another VS Code window or the CLI took the tunnel over. **Retry** takes it back to this window, and the other one loses it.
 

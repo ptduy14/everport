@@ -68,6 +68,14 @@ export const removeDetail = (t: TunnelStatus): string =>
 
 export const REMOVE_BUTTON = 'Remove Tunnel';
 
+export const removeLocalQuestion = (t: TunnelStatus, why: string): string =>
+  `Couldn't remove "${t.label}" from Cloudflare. ${why} Remove it from this list only?`;
+
+export const REMOVE_LOCAL_DETAIL =
+  'Everport forgets the tunnel on this computer. Its preview may stay on Cloudflare and keep its URL; you can delete it later in the Cloudflare dashboard.';
+
+export const REMOVE_LOCAL_BUTTON = 'Remove from List Only';
+
 export const LOGIN_WAIT_TITLE = 'Waiting for you in the browser…';
 export const LOGIN_WAIT_TEXT = "Log in to Cloudflare, then click Allow. This closes by itself when you're done.";
 export const LOGGED_IN_TEXT = 'Logged in to Cloudflare. Add a tunnel to get your first public URL.';

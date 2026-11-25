@@ -301,6 +301,23 @@ describe('ls, start, stop, rm, copy', () => {
     expect(s.text()).toContain('no longer works');
   });
 
+  it('rm --local removes the tunnel from this computer only, and says the preview may remain', async () => {
+    const s = setup();
+    expect(await s.go('rm', 'API', '--local')).toBe(0);
+    expect(s.manager.remove).toHaveBeenCalledWith('API', { localOnly: true });
+    expect(s.text()).toContain('may still be on Cloudflare');
+  });
+
+  it('rm points at --local when Cloudflare cannot be reached', async () => {
+    const s = setup({
+      remove: vi.fn(async () => {
+        throw new EverportError('WRANGLER_FAILED', 'fetch failed', 'Check the network.');
+      }),
+    });
+    expect(await s.go('rm', 'API')).toBe(1);
+    expect(s.errText()).toContain('everport rm API --local');
+  });
+
   it('copy finds a tunnel by label (any case) or id', async () => {
     const s = setup();
     expect(await s.go('copy', 'backend api')).toBe(0);

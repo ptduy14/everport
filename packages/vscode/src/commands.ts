@@ -30,7 +30,10 @@ import {
   LOGIN_WAIT_TEXT,
   LOGIN_WAIT_TITLE,
   REMOVE_BUTTON,
+  REMOVE_LOCAL_BUTTON,
+  REMOVE_LOCAL_DETAIL,
   removeDetail,
+  removeLocalQuestion,
   removeQuestion,
   targetError,
   urlPreview,
@@ -147,7 +150,23 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
         REMOVE_BUTTON,
       );
       if (!pick) return app.log('info', '  Cancelled');
-      await app.withBusy([t.id], 'Removing…', async () => (await app.ep()).remove(t.id));
+      try {
+        await app.withBusy([t.id], 'Removing…', async () => (await app.ep()).remove(t.id));
+      } catch (e) {
+        // Cloudflare could not be asked (offline, logged out, Worker gone): offer to forget the tunnel here only.
+        if (!(e instanceof EverportError) || ['TUNNEL_NOT_FOUND', 'LOCKED'].includes(e.code)) throw e;
+        const { summary } = errorText({ code: e.code, message: e.message, hint: e.hint });
+        app.log('warn', `  Cloudflare step failed: ${summary}`);
+        const choice = await vscode.window.showWarningMessage(
+          removeLocalQuestion(t, summary),
+          { modal: true, detail: REMOVE_LOCAL_DETAIL },
+          REMOVE_LOCAL_BUTTON,
+        );
+        if (!choice) throw e;
+        await app.withBusy([t.id], 'Removing…', async () => (await app.ep()).remove(t.id, { localOnly: true }));
+        app.log('info', `✓ ${t.label} removed from this computer. Its preview may still be on Cloudflare.`);
+        return;
+      }
       app.log('info', `✓ ${t.label} removed. ${new URL(t.url).host} no longer works.`);
     }),
   );
