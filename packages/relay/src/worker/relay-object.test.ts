@@ -123,6 +123,14 @@ describe('RelayObject: waking up and accepting an agent', () => {
     expect(await res.text()).toContain('agent replaced');
   });
 
+  it('never takes an upgrade on another path as the agent: the connected agent stays', async () => {
+    const { object, agent, state } = setup();
+    const res = await object.fetch(new Request('https://x.workers.dev/hmr', { headers: { upgrade: 'websocket' } }));
+    expect(res.status).toBe(501);
+    expect(agent.closes).toEqual([]);
+    expect(state.sockets).toEqual([agent]);
+  });
+
   it('does not stop on an old socket that refuses to close', async () => {
     const { object, agent } = setup();
     agent.failClose = true;

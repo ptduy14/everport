@@ -3,6 +3,7 @@
 // It creates a Worker called ep-smoke-<random> and removes it again, whatever happens. Slow, and it needs a login.
 // Run with:  $env:EVERPORT_CLOUDFLARE='1'; npm run test:e2e
 import { createHash } from 'node:crypto';
+import { CODE_VERSION } from '@everport/relay';
 import {
   NodeFileSystem,
   NodeRelayProbe,
@@ -89,7 +90,7 @@ describe.skipIf(!enabled)(`the relay on Cloudflare (Worker ${WORKER})`, () => {
     expect(created.map((c) => c.name)).toEqual(['fe', 'be', 'cms']);
     for (const tunnel of created) {
       expect(tunnel.url).toBe(`https://${tunnel.name}-${WORKER}.${tunnel.subdomain}.workers.dev`);
-      expect(await deployer.checkTunnel(tunnel.url, tunnel.name)).toEqual({ health: 'ok', codeVersion: '1' });
+      expect(await deployer.checkTunnel(tunnel.url, tunnel.name)).toEqual({ health: 'ok', codeVersion: CODE_VERSION });
       expect(await deployer.previewExists(WORKER, tunnel.name)).toBe(true);
     }
     expect(await deployer.probeWorker(WORKER)).toBe('previews-only');

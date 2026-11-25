@@ -1,6 +1,7 @@
 // The relay Worker built by tsup, running in the real Cloudflare runtime (workerd, through `wrangler dev`),
 // with the real agent connected to it. No Cloudflare account involved. Run with `npm run test:e2e`.
 import { createHash } from 'node:crypto';
+import { CODE_VERSION } from '@everport/relay';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { RelayAgent } from './agent.js';
 import { buildWorker, startWorkerd, type WorkerdRelay } from './testing/e2e-helpers.js';
@@ -40,7 +41,7 @@ describe('the relay Worker in workerd', () => {
   it('names itself and its tunnel on /__ep/version, without needing an agent', async () => {
     const res = await fetch(`${relay.url}/__ep/version`);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ name: 'everport-relay', codeVersion: '1', tunnel: TUNNEL });
+    expect(await res.json()).toEqual({ name: 'everport-relay', codeVersion: CODE_VERSION, tunnel: TUNNEL });
   });
 
   it('answers 503 while no agent is connected', async () => {

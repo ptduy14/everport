@@ -93,6 +93,19 @@ describe('/__connect', () => {
 });
 
 describe('public requests', () => {
+  it.each(['/', '/_next/webpack-hmr', '/x?token=whatever', '/__connect/extra'])(
+    'refuses a WebSocket upgrade to %s with 501 and never reaches the Durable Object',
+    async (path) => {
+      const { env, calls } = makeEnv();
+      for (const upgrade of ['websocket', 'WebSocket']) {
+        const res = await handleFetch(get(path, { upgrade }), env);
+        expect(res.status).toBe(501);
+        expect(await res.text()).toContain('websockets of the local service are not supported');
+      }
+      expect(calls).toHaveLength(0);
+    },
+  );
+
   it('goes to the Durable Object named after the tunnel', async () => {
     const { env, calls, named } = makeEnv();
     const res = await handleFetch(get('/page.html?x=1'), env);

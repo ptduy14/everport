@@ -20,9 +20,14 @@ export async function handleFetch(request: Request, env: RelayEnv): Promise<Resp
 
   const stub = env.RELAY.get(env.RELAY.idFromName(tunnel));
 
+  const upgrade = request.headers.get('upgrade')?.toLowerCase() === 'websocket';
   if (url.pathname === '/__connect') {
-    if (request.headers.get('upgrade') !== 'websocket') return text(426, 'expected websocket');
+    if (!upgrade) return text(426, 'expected websocket');
     if (!(await verifyToken(env.SECRET, tunnel, url.searchParams.get('token') ?? ''))) return text(403, 'forbidden');
+  } else if (upgrade) {
+    // Only the agent may open a socket, and only through the token check above. The proxied app's own WebSockets
+    // (hot reload, for example) are not relayed.
+    return text(501, 'websockets of the local service are not supported');
   }
   return stub.fetch(request);
 }

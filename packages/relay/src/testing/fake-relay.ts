@@ -9,6 +9,7 @@ import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import type { HeaderList } from '../frame.js';
 import { REPLACED, RelayCore, type AgentSocket, type PublicRequest } from '../relay-core.js';
 import { verifyToken } from '../token.js';
+import { CODE_VERSION } from '../worker/version.js';
 
 export interface FakeRelayOptions {
   secret: string;
@@ -74,7 +75,7 @@ export class FakeRelay {
       res.end(
         JSON.stringify({
           name: 'everport-relay',
-          codeVersion: this.options.codeVersion ?? '1',
+          codeVersion: this.options.codeVersion ?? CODE_VERSION,
           tunnel: this.options.tunnel,
         }),
       );
@@ -132,7 +133,7 @@ export class FakeRelay {
     const reject = (code: number, message: string) => {
       socket.end(`HTTP/1.1 ${code} ${message}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n`);
     };
-    if (url.pathname !== '/__connect') return reject(404, 'Not Found');
+    if (url.pathname !== '/__connect') return reject(501, 'Not Implemented'); // as the real Worker: only the agent may open a socket
     const token = url.searchParams.get('token') ?? '';
     if (!(await verifyToken(this.options.secret, this.options.tunnel, token))) return reject(403, 'Forbidden');
 

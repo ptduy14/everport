@@ -15,7 +15,7 @@ import { FakeFs } from './testing/fake-fs.js';
 const WORKER = 'everport';
 
 function setup() {
-  const fs = new FakeFs().seed('/bundle/worker.js', '// fake relay worker, code version 1');
+  const fs = new FakeFs().seed('/bundle/worker.js', `// fake relay worker, code version ${CODE_VERSION}`);
   const layout = createLayout({ platform: 'linux', env: {}, home: '/h' }, '/data');
   const cloud = new FakeCloudflare(fs, 'linux');
   cloud.createDelayMs = 1;
@@ -86,7 +86,7 @@ describe('add', () => {
     expect(config.relay).toEqual({
       workerName: WORKER,
       subdomain: 'example',
-      codeVersion: '1',
+      codeVersion: CODE_VERSION,
       wranglerVersion: '4.166.0',
     });
     expect(config.tunnels).toEqual([
@@ -434,7 +434,7 @@ describe('status', () => {
     fs.seed('/bundle/worker.js', '// fake relay worker, code version 0');
     await everport.add({ target: '3000', label: 'fe' });
     expect((await everport.status({ health: true }))[0]).toMatchObject({ outdated: true });
-    expect(CODE_VERSION).toBe('1');
+    expect(CODE_VERSION).not.toBe('0');
   });
 });
 

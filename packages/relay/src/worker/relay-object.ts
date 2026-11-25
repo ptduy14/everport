@@ -20,7 +20,12 @@ export class RelayObject {
   }
 
   async fetch(request: Request): Promise<Response> {
-    return request.headers.get('upgrade') === 'websocket' ? this.acceptAgent() : this.proxy(request);
+    if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket') return this.proxy(request);
+    // The Worker lets an upgrade through only on /__connect with a valid token; refuse any other as a second guard.
+    if (new URL(request.url).pathname !== '/__connect') {
+      return new Response('websockets of the local service are not supported\n', { status: 501 });
+    }
+    return this.acceptAgent();
   }
 
   webSocketMessage(_ws: WorkerWebSocket, message: string | ArrayBuffer): void {

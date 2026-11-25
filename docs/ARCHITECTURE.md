@@ -54,7 +54,7 @@ The core follows **ports and adapters**: it never calls `child_process`, `fetch`
 
 ## The relay protocol
 
-**Agent connection.** The agent calls `GET https://<host>/__connect?token=<hex>` with `Upgrade: websocket`. The token is `HMAC-SHA256(secret, "connect:" + tunnelName)` in lowercase hex, compared in constant time. Replies: `101` accepted, `403` bad token, `426` not a WebSocket request, `500` relay has no secret. One agent per tunnel: a new connection closes the old one with code `1000` and reason `replaced`.
+**Agent connection.** The agent calls `GET https://<host>/__connect?token=<hex>` with `Upgrade: websocket`. The token is `HMAC-SHA256(secret, "connect:" + tunnelName)` in lowercase hex, compared in constant time. Replies: `101` accepted, `403` bad token, `426` not a WebSocket request, `500` relay has no secret. One agent per tunnel: a new connection closes the old one with code `1000` and reason `replaced`. A WebSocket upgrade on any other path is refused with `501`, by the Worker and again by the Durable Object, so only a request that passed the token check can become the agent (and the local service's own WebSockets are not relayed).
 
 **Identity.** `GET /__ep/version` returns `{ "name": "everport-relay", "codeVersion": "...", "tunnel": "<name>" }`. Everport uses it to check that the thing answering at an address is its own relay.
 

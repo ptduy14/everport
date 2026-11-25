@@ -1,3 +1,4 @@
+import { CODE_VERSION } from '@everport/relay';
 import { describe, expect, it } from 'vitest';
 import { nullLogger } from '../logger.js';
 import { createLayout } from '../paths.js';
@@ -9,7 +10,7 @@ const SECRET = 'ab'.repeat(32);
 const WORKER = 'everport';
 
 function setup() {
-  const fs = new FakeFs().seed('/bundle/worker.js', '// fake relay worker, code version 1');
+  const fs = new FakeFs().seed('/bundle/worker.js', `// fake relay worker, code version ${CODE_VERSION}`);
   const layout = createLayout({ platform: 'linux', env: {}, home: '/h' }, '/data');
   const cloud = new FakeCloudflare(fs, 'linux');
   const clock = { now: 0 };
@@ -100,13 +101,13 @@ describe('createTunnel', () => {
       name: 'backend-api',
       url: 'https://backend-api-everport.example.workers.dev',
       subdomain: 'example',
-      codeVersion: '1',
+      codeVersion: CODE_VERSION,
     });
     expect(commands()).toEqual(['versions list', 'preview --name']);
 
     const dir = '/data/relay';
     expect(fs.text(`${dir}/wrangler.toml`)).toContain('name = "everport"');
-    expect(fs.text(`${dir}/worker.js`)).toBe('// fake relay worker, code version 1');
+    expect(fs.text(`${dir}/worker.js`)).toBe(`// fake relay worker, code version ${CODE_VERSION}`);
 
     const deploy = cloud.calls[1]!;
     expect(deploy.cwd).toBe(dir);
@@ -332,7 +333,7 @@ describe('checking a tunnel without disturbing it', () => {
     const { cloud, deployer, newTunnel } = setup();
     const created = await newTunnel('fe');
     const handshakesBefore = cloud.handshakes.length;
-    expect(await deployer.checkTunnel(created.url, 'fe')).toEqual({ health: 'ok', codeVersion: '1' });
+    expect(await deployer.checkTunnel(created.url, 'fe')).toEqual({ health: 'ok', codeVersion: CODE_VERSION });
     expect(cloud.handshakes).toHaveLength(handshakesBefore);
   });
 

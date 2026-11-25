@@ -11,6 +11,7 @@ import {
   type RequestHead,
 } from '../frame.js';
 import { connectToken } from '../token.js';
+import { CODE_VERSION } from '../worker/version.js';
 import { FakeRelay } from './fake-relay.js';
 
 const SECRET = 'c0ffee'.repeat(10);
@@ -112,7 +113,7 @@ describe('FakeRelay: the entrance', () => {
   it('names itself, its code version and its tunnel on /__ep/version', async () => {
     const res = await fetch(`${base}/__ep/version`);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ name: 'everport-relay', codeVersion: '1', tunnel: TUNNEL });
+    expect(await res.json()).toEqual({ name: 'everport-relay', codeVersion: CODE_VERSION, tunnel: TUNNEL });
   });
 
   it('answers 426 to /__connect when the request is not a WebSocket', async () => {
