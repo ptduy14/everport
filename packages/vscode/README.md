@@ -19,7 +19,8 @@ The same tunnels are available from a terminal with the `everport` command (alia
 - Your public addresses contain your Cloudflare `workers.dev` subdomain, which Cloudflare may have taken from your email address. Everport says so when you add your first tunnel.
 - Starting tunnels makes your local services public. Tunnels do not start when VS Code opens unless you turn on `everport.startOnOpen`.
 - After a restart your tunnels show **Offline**: click **Start All** (their URLs stay the same), or turn on `everport.startOnOpen`.
-- Removing a tunnel deletes its URL from Cloudflare. To pause it and keep the URL, use **Stop**.
+- A tunnel that is online while your local service is stopped shows **Your service isn't running**: start the service, the tunnel itself is fine.
+- Removing a tunnel deletes its URL from Cloudflare. To pause it and keep the URL, use **Stop**. If Cloudflare cannot be reached, Everport offers **Remove from List Only**.
 - Everport's own code sends no usage data. Cloudflare's wrangler, which Everport runs, has its own setting for that: see [Privacy and security](https://github.com/ptduy14/everport/blob/main/docs/reference.md#privacy-and-security).
 
 Run **Everport: Run Doctor** if something does not work. **Show Log** opens the Everport output channel, where each error comes with a fix.

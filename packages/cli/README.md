@@ -89,11 +89,13 @@ everport rm widgets            # delete the tunnel and its preview from Cloudfla
 | `up` / `down`             | Starts or stops the background agent and every enabled tunnel.     |
 | `ls`                      | Lists tunnels; `--health` asks each address who answers.           |
 | `start` / `stop <tunnel>` | Turns one tunnel on or off.                                        |
-| `rm <tunnel>`             | Removes the tunnel and its preview. The address stops working.     |
+| `rm <tunnel> [--local]`   | Removes the tunnel and its preview. The address stops working.     |
 | `copy <tunnel>`           | Copies the URL to the clipboard.                                   |
 | `doctor`                  | Checks your setup and says how to fix each problem.                |
 
-`ls` shows each tunnel as `online`, `stopped` (you turned it off), `offline` (the background agent is not running), `missing` (gone from Cloudflare; `up` brings it back at the same address) or `error` (with a fix printed under the table).
+`ls` shows each tunnel as `online`, `stopped` (you turned it off), `offline` (the background agent is not running), `missing` (gone from Cloudflare; `up` brings it back at the same address) or `error` (with a fix printed under the table). It also warns when a tunnel is online but your local service is not running.
+
+If Cloudflare cannot be reached (offline, logged out, or the relay Worker was deleted), `everport rm <tunnel> --local` forgets a tunnel on this computer only.
 
 After a reboot, run `everport up` (or click **Start All** in VS Code) to start your tunnels again. Something not working? Start with `everport doctor`.
 
@@ -103,7 +105,7 @@ Options, environment variables, the data folder, CI tokens and troubleshooting a
 
 Open the Everport view in the Activity Bar to log in to Cloudflare, add a tunnel from a picker of the ports that are listening, start and stop tunnels, copy and open URLs, check health and run the doctor. The status bar shows how many tunnels are online and which need attention. **Show Log** opens the Everport output channel, with a fix for each error.
 
-Two settings matter: `everport.startOnOpen` starts your enabled tunnels when VS Code opens (off by default, because starting makes your local services public), and `everport.nodePath` points to a Node.js 22.12+ executable. Everport finds Node.js on your `PATH` and in the folders of fnm, nvm and Volta; if yours is elsewhere, run **Everport: Select Node.js**.
+Two settings matter: `everport.startOnOpen` starts your enabled tunnels when VS Code opens (off by default, because starting makes your local services public), and `everport.nodePath` points to a Node.js 22.12+ executable. Everport finds Node.js on your `PATH` and in the folders of fnm, nvm and Volta; if yours is elsewhere, run **Everport: Select Node.js**. Both are read from your user settings only, never from a workspace's `.vscode/settings.json`.
 
 ## Good to know
 
@@ -111,7 +113,7 @@ Two settings matter: `everport.startOnOpen` starts your enabled tunnels when VS 
 - **Your URLs are public.** Anyone who knows a URL can reach the service behind it, so do not expose a service that has no authentication. The address also contains your Cloudflare `workers.dev` subdomain.
 - **Free plan limits.** According to Cloudflare's documentation (check the current numbers): 100,000 requests per day for Workers and for Durable Objects, and 100 previews per Worker. Past a limit, requests fail until 00:00 UTC. See the [limits](https://github.com/ptduy14/everport/blob/main/docs/reference.md#cloudflare-limits); quota use over long sessions has not been measured.
 - **AI connectors.** Everport was designed so that connectors such as ChatGPT can load your widgets and pages from a fixed address. We tested it in ChatGPT: an MCP app loaded its widget bundle from an Everport URL inside ChatGPT's sandboxed iframe (November 2026, one setup).
-- **Not supported yet:** WebSockets of your own app (for example hot reload), streaming uploads, request flow control.
+- **Not supported yet:** WebSockets of your own app (for example hot reload; they are refused and the tunnel keeps working), streaming uploads, request flow control.
 - **Privacy.** Everport's own code sends no usage data. Cloudflare's wrangler, which Everport runs, has its own setting for that; see [Privacy and security](https://github.com/ptduy14/everport/blob/main/docs/reference.md#privacy-and-security).
 - **A development tool, not for production.** You are responsible for following Cloudflare's terms. Everport comes with no warranty ([MIT license](https://github.com/ptduy14/everport/blob/main/LICENSE)).
 

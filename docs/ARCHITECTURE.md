@@ -49,7 +49,7 @@ The core follows **ports and adapters**: it never calls `child_process`, `fetch`
 - **`add`**: checks the input and the login, creates a secret if needed, creates the preview (the first one also creates the Worker, alone), reads the real slug and URL from wrangler's JSON, checks that the address is answered by _this_ relay and that the agent handshake works, saves the configuration, and hands the tunnel to the agent. If saving fails the new preview is removed; if only the agent fails the tunnel is kept and reported `failed`.
 - **`up`**: asks each preview who answers at its address. A missing preview is recreated under the same name (same URL). An address answered by a foreign Worker, or an unreachable network, is **never** recreated. One tunnel failing does not stop the others.
 - **`down`**: stops the agent. Previews stay on Cloudflare, so the addresses stay.
-- **`remove`**: deletes the preview on Cloudflare first (the step that can fail), then updates the agent and the configuration.
+- **`remove`**: deletes the preview on Cloudflare first (the step that can fail), then updates the agent and the configuration. With `--local` (in VS Code, **Remove from List Only**, offered when the Cloudflare step fails) it skips Cloudflare, for when it cannot be reached; the preview may then remain.
 - **`doctor`**: checks Node, the pinned wrangler, the login, the data folder, the configuration, the relay and the agent, and prints a fix for each failure.
 
 ## The relay protocol
@@ -80,7 +80,7 @@ Text messages are only for keep-alive: the agent sends `ping`, the runtime answe
 
 ## The agent
 
-A background Node process, started detached so it outlives the terminal or editor that started it. One process serves all tunnels, one WebSocket each. It writes `agent.json` (pid, control port and a per-run token) and exposes a small HTTP control API on `127.0.0.1`: `GET /status`, `POST /tunnels`, `DELETE /tunnels/<name>` and `POST /shutdown`. Every call needs the token header, because a web page can still send a simple POST to a loopback port without a CORS check. The relay secret does not travel through the API: the agent reads `relay-secret` from disk itself. When another agent takes one of its tunnels (`replaced`), it stops that tunnel and does not reconnect, so two windows never fight over one address.
+A background Node process, started detached so it outlives the terminal or editor that started it. One process serves all tunnels, one WebSocket each. It writes `agent.json` (pid, control port and a per-run token) and exposes a small HTTP control API on `127.0.0.1`: `GET /status`, `POST /tunnels`, `DELETE /tunnels/<name>` and `POST /shutdown`. Every call needs the token header, because a web page can still send a simple POST to a loopback port without a CORS check. The relay secret does not travel through the API: the agent reads `relay-secret` from disk itself. When another agent takes one of its tunnels (`replaced`), it stops that tunnel and does not reconnect, so two windows never fight over one address. An `agent.json` (or a lock file) written before the computer last started is treated as stale: after a restart its pid may belong to another process, so Everport never asks or kills that pid.
 
 ## Deploying to Cloudflare
 
@@ -95,7 +95,7 @@ Everport drives Cloudflare's `wrangler` tool, pinned to one exact version and ru
 
 ## Data on disk
 
-In the data folder (see the README): `tunnels.json` (the tunnels you want, with the real URLs), `relay-secret` (random, one per Worker, owner-only where the OS allows), `agent.json` (running agent), lock files, and `logs/`. The secret never goes into `tunnels.json`.
+In the data folder (see the README): `tunnels.json` (the tunnels you want, with the real URLs), `relay-secret` (random, one per Worker, owner-only where the OS allows), `agent.json` (running agent), lock files, and `logs/`. The secret never goes into `tunnels.json`. The lock keeps two processes (the CLI and a VS Code window, say) from changing tunnels at once; within one process, operations wait for each other instead.
 
 ## Tunnel states
 
@@ -107,14 +107,15 @@ In the data folder (see the README): `tunnels.json` (the tunnels you want, with 
 | `missing` | the preview is gone from Cloudflare (known after a health check)       |
 | `failed`  | the last operation failed; the status carries a code, message and hint |
 
-A health check adds `ok`, `not-found`, `mismatch` (a foreign Worker answers) or `unreachable`, and an `outdated` flag when the relay on Cloudflare runs older code than the installed Everport.
+A health check adds `ok`, `not-found`, `mismatch` (a foreign Worker answers) or `unreachable`, and an `outdated` flag when the relay on Cloudflare runs older code than the installed Everport. A `not-found` answer makes the state `missing`, whatever the agent is doing. Every status read also sets `localDown` on an `active` tunnel whose local service refuses a TCP connection.
 
 These are the names in the API and in `--json`. The CLI and the VS Code view show them to people as online, stopped, offline, missing and error (see [Tunnel states](reference.md#tunnel-states)). The core's hints name CLI commands; the extension rewords them as its own buttons, so both share one set of error codes.
 
 ## Security model
 
 - A tunnel's public URL is public by design; anyone who knows it can reach the local service.
-- Only an agent holding the secret can attach to a tunnel (HMAC token, constant-time comparison).
+- Only an agent holding the secret can attach to a tunnel (HMAC token, constant-time comparison). Any other WebSocket upgrade, on any path, is refused with `501` by the Worker and again by the Durable Object.
+- The VS Code settings `everport.nodePath` and `everport.startOnOpen` are read from user settings only, so a workspace cannot choose the program Everport runs or start tunnels.
 - The secret lives in a local file, is not logged, and is not part of any URL. On Windows it relies on your user folder's permissions.
 - The agent's control API is loopback-only and token-protected.
 - Everport never reads or stores wrangler's login.
