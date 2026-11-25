@@ -123,6 +123,16 @@ describe('findAgent', () => {
     expect(await fs.exists(layout.agentStateFile)).toBe(false);
   });
 
+  it('ignores and removes an agent.json from before a restart, even when its pid now belongs to another process', async () => {
+    const { deps, fs, layout, processTable } = await setup();
+    const boot = Date.now() - 10 * 60_000;
+    processTable.bootTime = () => boot;
+    await writeAgentState(fs, layout.agentStateFile, { pid: 4244, port: 1, token: 't', startedAt: boot - 3_600_000 });
+    processTable.alive.add(4244);
+    expect(await findAgent(deps)).toBeNull();
+    expect(await fs.exists(layout.agentStateFile)).toBe(false);
+  });
+
   it('finds the agent that is running', async () => {
     const { deps } = await setup();
     const started = await startAgent(deps);
@@ -146,6 +156,17 @@ describe('stopAgent', () => {
     processTable.alive.add(4243);
     expect(await stopAgent(deps, { timeoutMs: 200, pollMs: 20 })).toBe('killed');
     expect(processTable.killed).toEqual([4243]);
+    expect(await fs.exists(layout.agentStateFile)).toBe(false);
+  });
+
+  it('never kills by a pid recorded before a restart', async () => {
+    const { deps, fs, layout, processTable } = await setup();
+    const boot = Date.now() - 10 * 60_000;
+    processTable.bootTime = () => boot;
+    await writeAgentState(fs, layout.agentStateFile, { pid: 4245, port: 1, token: 't', startedAt: boot - 3_600_000 });
+    processTable.alive.add(4245);
+    expect(await stopAgent(deps, { timeoutMs: 200, pollMs: 20 })).toBe('not-running');
+    expect(processTable.killed).toEqual([]);
     expect(await fs.exists(layout.agentStateFile)).toBe(false);
   });
 

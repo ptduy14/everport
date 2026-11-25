@@ -24,7 +24,7 @@ export {
   type RelayConfig,
   type Tunnel,
 } from './config-store.js';
-export { FileLock, type Release } from './lock.js';
+export { FileLock, startedBeforeBoot, type Release } from './lock.js';
 export { classifyPorts, type PortSnapshot, type PortGroup, type PortCandidate } from './port-classifier.js';
 export { scanPorts, candidateTarget, type ScanOptions } from './port-scan.js';
 export { NodePortScanner } from './adapters/node-port-scanner.js';

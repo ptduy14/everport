@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { uptime } from 'node:os';
 import type { ProcessTable } from '../ports.js';
 
 const run = (cmd: string, args: string[]) =>
@@ -50,6 +51,10 @@ export class NodeProcessTable implements ProcessTable {
     } catch (e) {
       return (e as NodeJS.ErrnoException).code === 'EPERM';
     }
+  }
+
+  bootTime(): number {
+    return Date.now() - uptime() * 1000;
   }
 
   spawnDetached(cmd: string, args: string[], logFile: string): Promise<number | undefined> {

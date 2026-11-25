@@ -50,6 +50,8 @@ export async function startTestDaemon(
 export class FakeProcessTable implements ProcessTable {
   alive = new Set<number>();
   killed: number[] = [];
+  /** Set by a test to say when the computer last started. */
+  bootTime?: () => number;
   spawned: { cmd: string; args: string[]; logFile: string }[] = [];
   onSpawn: (cmd: string, args: string[], logFile: string) => Promise<number | undefined> | number | undefined = () =>
     undefined;

@@ -1,5 +1,12 @@
 // Starting, finding and stopping the background agent, from the CLI or VS Code side.
-import { EverportError, FileLock, type FileSystem, type Layout, type ProcessTable } from '@everport/core';
+import {
+  EverportError,
+  FileLock,
+  startedBeforeBoot,
+  type FileSystem,
+  type Layout,
+  type ProcessTable,
+} from '@everport/core';
 import { AgentClient } from './control-client.js';
 import { readAgentState, removeAgentState } from './state.js';
 
@@ -21,6 +28,10 @@ export interface LauncherDeps extends FindDeps {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** agent.json describes no running agent: its process is gone, or it was written before the last restart. */
+const isStale = (state: { pid: number; startedAt: number }, processTable: ProcessTable): boolean =>
+  !processTable.isAlive(state.pid) || startedBeforeBoot(state.startedAt, processTable);
+
 /**
  * The running agent, or null when none runs. A leftover agent.json whose process is gone is cleaned up.
  * Throws when the recorded process is alive but does not answer: starting a second agent would fight with it.
@@ -28,8 +39,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export async function findAgent({ fs, processTable, layout }: FindDeps): Promise<AgentClient | null> {
   const state = await readAgentState(fs, layout.agentStateFile);
   if (!state) return null;
-  if (!processTable.isAlive(state.pid)) {
-    await removeAgentState(fs, layout.agentStateFile);
+  if (isStale(state, processTable)) {
+    await removeAgentState(fs, layout.agentStateFile, state.pid); // a new agent may have written it meanwhile
     return null;
   }
   const client = new AgentClient(state, 2000);
@@ -130,8 +141,9 @@ export async function stopAgent(
   const { fs, processTable, layout } = deps;
   const state = await readAgentState(fs, layout.agentStateFile);
   if (!state) return 'not-running';
-  if (!processTable.isAlive(state.pid)) {
-    await removeAgentState(fs, layout.agentStateFile);
+  // Never kill by a pid from before a restart: it is someone else's process now.
+  if (isStale(state, processTable)) {
+    await removeAgentState(fs, layout.agentStateFile, state.pid);
     return 'not-running';
   }
 
@@ -141,6 +153,6 @@ export async function stopAgent(
 
   const outcome: StopOutcome = processTable.isAlive(state.pid) ? 'killed' : 'stopped';
   if (outcome === 'killed') await processTable.killTree(state.pid);
-  await removeAgentState(fs, layout.agentStateFile);
+  await removeAgentState(fs, layout.agentStateFile, state.pid);
   return outcome;
 }

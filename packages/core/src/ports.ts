@@ -76,6 +76,8 @@ export interface ProcessTable {
   /** Kills the process and all its descendants. */
   killTree(pid: number): Promise<void>;
   isAlive(pid: number): boolean;
+  /** When this computer last started (ms since the epoch); a pid recorded before then belongs to someone else now. */
+  bootTime?(): number;
   /** Starts `cmd args` fully detached from this process tree (double spawn); returns the child pid. */
   spawnDetached(cmd: string, args: string[], logFile: string): Promise<number | undefined>;
 }

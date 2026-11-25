@@ -180,17 +180,32 @@ describe('add', () => {
     expect((await store.load()).tunnels).toHaveLength(1);
   });
 
-  it('does not let two adds run at once', async () => {
-    const { everport, store } = setup();
+  it('runs two adds of one process one after the other, never at once and never failing with LOCKED', async () => {
+    const { everport, store, cloud } = setup();
+    let running = 0;
+    let most = 0;
+    const original = cloud.probe.version;
+    cloud.probe.version = async (url) => {
+      most = Math.max(most, ++running);
+      try {
+        return await original(url);
+      } finally {
+        running--;
+      }
+    };
     const results = await Promise.allSettled([
       everport.add({ target: '3000', label: 'a' }),
       everport.add({ target: '3001', label: 'b' }),
     ]);
-    expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
-    expect(((results.find((r) => r.status === 'rejected') as PromiseRejectedResult).reason as EverportError).code).toBe(
-      'LOCKED',
-    );
-    expect((await store.load()).tunnels).toHaveLength(1);
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'fulfilled']);
+    expect(most).toBe(1);
+    expect((await store.load()).tunnels).toHaveLength(2);
+  });
+
+  it('lets a stop wait for a Start All of the same window instead of failing', async () => {
+    const { everport } = await withTunnels('fe', 'be');
+    const results = await Promise.allSettled([everport.up(), everport.stop('fe'), everport.start('fe')]);
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'fulfilled', 'fulfilled']);
   });
 
   it('releases its lock when it is done', async () => {
