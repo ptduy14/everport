@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createServer, type AddressInfo } from 'node:net';
 import { gzipSync } from 'node:zlib';
 import { FakeRelay } from '@everport/relay/testing';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -41,6 +42,15 @@ async function serve(handler: Handler, name = 'fe') {
   await agent.addTunnel({ name, url: base, target: origin.url });
   await waitFor(() => relay.connectedAgents === 1);
   return { relay, base, origin, agent };
+}
+
+/** A port that was free a moment ago, so nothing listens there (fetch refuses some low ports outright, like 1). */
+async function closedPort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  await new Promise((resolve) => server.close(resolve));
+  return port;
 }
 
 const sha256 = (data: Uint8Array) => createHash('sha256').update(data).digest('hex');
@@ -127,12 +137,13 @@ describe('RelayAgent: forwarding requests', () => {
   it('answers 502 with the reason when the local service is not running', async () => {
     const { relay, base } = await startRelay('fe');
     const agent = newAgent();
-    await agent.addTunnel({ name: 'fe', url: base, target: 'http://127.0.0.1:1' });
+    const port = await closedPort();
+    await agent.addTunnel({ name: 'fe', url: base, target: `http://127.0.0.1:${port}` });
     await waitFor(() => relay.connectedAgents === 1);
     const res = await fetch(`${base}/anything`);
     expect(res.status).toBe(502);
     expect(await res.text()).toBe(
-      "Everport: this tunnel works, but nothing is running on localhost:1 on the developer's computer. Start the app and try again.\n",
+      `Everport: this tunnel works, but nothing is running on localhost:${port} on the developer's computer. Start the app and try again.\n`,
     );
   });
 
@@ -141,11 +152,12 @@ describe('RelayAgent: forwarding requests', () => {
     const lines: string[] = [];
     const logger = { info: () => {}, warn: (m: string) => void lines.push(m), error: () => {} };
     const agent = newAgent({ logger });
-    await agent.addTunnel({ name: 'fe', url: base, target: 'http://127.0.0.1:1' });
+    const port = await closedPort();
+    await agent.addTunnel({ name: 'fe', url: base, target: `http://127.0.0.1:${port}` });
     await waitFor(() => relay.connectedAgents === 1);
     for (let i = 0; i < 3; i++) await (await fetch(`${base}/x${i}`)).text();
     expect(lines.filter((l) => l.includes('could not reach'))).toEqual([
-      'tunnel fe: a request could not reach localhost:1 (nothing is running there)',
+      `tunnel fe: a request could not reach localhost:${port} (nothing is running there)`,
     ]);
   });
 
