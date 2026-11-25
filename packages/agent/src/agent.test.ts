@@ -205,6 +205,33 @@ describe('RelayAgent: connection lifecycle', () => {
     await waitFor(() => relay.totalConnections >= 2, 4000);
   });
 
+  it('clears its keep-alive timer when a connected tunnel is removed', async () => {
+    const { relay, base } = await startRelay('fe');
+    const agent = newAgent();
+    const realSet = globalThis.setInterval;
+    const realClear = globalThis.clearInterval;
+    const created: ReturnType<typeof setInterval>[] = [];
+    const cleared = new Set<unknown>();
+    globalThis.setInterval = ((...args: Parameters<typeof setInterval>) => {
+      const id = realSet(...args);
+      created.push(id);
+      return id;
+    }) as typeof setInterval;
+    globalThis.clearInterval = ((id: Parameters<typeof clearInterval>[0]) => {
+      cleared.add(id);
+      realClear(id);
+    }) as typeof clearInterval;
+    cleanup.push(() => {
+      globalThis.setInterval = realSet;
+      globalThis.clearInterval = realClear;
+    });
+    await agent.addTunnel({ name: 'fe', url: base, target: 'http://127.0.0.1:1' });
+    await waitFor(() => relay.connectedAgents === 1 && created.length > 0);
+    await agent.removeTunnel('fe');
+    expect(created.length).toBeGreaterThan(0);
+    expect(created.every((id) => cleared.has(id))).toBe(true);
+  });
+
   it('stays on one connection for as long as the relay answers pings', async () => {
     const { relay, base } = await startRelay('fe');
     const agent = newAgent();

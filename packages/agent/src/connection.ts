@@ -105,6 +105,8 @@ export class TunnelConnection {
   private since: number;
   private lastError: string | undefined;
   private current: WebSocket | null = null;
+  /** Clears the keep-alive timers and requests of the current socket. */
+  private teardown: (() => void) | undefined;
   private requests = new Map<number, ActiveRequest>();
   private attempt = 0;
   /** When the last working connection dropped; undefined while connected or before the first one. */
@@ -159,6 +161,9 @@ export class TunnelConnection {
     this.reconnectTimer = undefined;
     const ws = this.current;
     this.current = null;
+    // The socket's own close handler ignores a socket that is no longer current, so clear its timers here.
+    this.teardown?.();
+    this.teardown = undefined;
     this.abortAll();
     this.setState('stopped');
     if (ws) {
@@ -229,6 +234,7 @@ export class TunnelConnection {
       for (const r of requests.values()) r.abort.abort();
       requests.clear();
     };
+    this.teardown = teardown;
 
     ws.onopen = () => {
       this.attempt = 0;
