@@ -232,8 +232,14 @@ export class Everport {
       await this.d.agent.ensureRunning();
       this.d.events.emit('agent:ready', 'The agent is running');
 
-      const wanted = enabled.filter((t) => !errors.has(t.id));
       const before = await this.d.agent.status();
+      // A probe that timed out says nothing about a tunnel the agent is serving right now: keep it.
+      for (const tunnel of enabled) {
+        const served = before?.tunnels.find((t) => t.name === tunnel.name);
+        if (errors.get(tunnel.id)?.code === 'RELAY_UNREACHABLE' && served?.state === 'connected')
+          errors.delete(tunnel.id);
+      }
+      const wanted = enabled.filter((t) => !errors.has(t.id));
       for (const stale of before?.tunnels ?? []) {
         if (!wanted.some((t) => t.name === stale.name)) await this.d.agent.removeTunnel(stale.name);
       }

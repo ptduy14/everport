@@ -294,6 +294,17 @@ describe('up', () => {
     expect(cloud.calls).toHaveLength(0);
   });
 
+  it('keeps serving a connected tunnel whose check timed out, instead of taking it off the agent', async () => {
+    const { everport, cloud, agent } = await withTunnels('fe', 'be');
+    cloud.unreachable = true; // the probe fails, but the agent's sockets are fine
+    const statuses = await everport.up();
+    expect(statuses.map((s) => [s.label, s.state])).toEqual([
+      ['fe', 'active'],
+      ['be', 'active'],
+    ]);
+    expect([...agent.tunnels.keys()].sort()).toEqual(['be', 'fe']);
+  });
+
   it('says a login is needed to bring a preview back, and still serves the others', async () => {
     const { everport, cloud } = await withTunnels('fe', 'be');
     await everport.down();
