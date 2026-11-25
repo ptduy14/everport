@@ -90,12 +90,14 @@
         "everport.startOnOpen": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Start your tunnels when VS Code opens, if they are not already running. Off by default, because starting makes your local services public."
+          "markdownDescription": "Start your tunnels when VS Code opens, if they are not already running. Off by default, because starting makes your local services public.",
+          "scope": "application"
         },
         "everport.nodePath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "The Node.js (22.12 or newer) Everport runs on. Leave empty to pick one automatically. Easiest: run **Everport: Select Node.js**."
+          "markdownDescription": "The Node.js (22.12 or newer) Everport runs on. Leave empty to pick one automatically. Easiest: run **Everport: Select Node.js**.",
+          "scope": "machine"
         }
       }
     },
@@ -353,5 +355,11 @@
     "@types/vscode": "~1.90.0",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.1.1"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "Everport settings are only read from your user settings, never from a workspace."
+    }
   }
 }

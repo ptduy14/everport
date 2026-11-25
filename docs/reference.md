@@ -76,7 +76,9 @@ The first `everport add` also creates the relay Worker in your Cloudflare accoun
 | `everport.startOnOpen` | off     | Start your enabled tunnels when VS Code opens. Off by default because starting makes your local services public. |
 | `everport.nodePath`    | empty   | The Node.js (22.12 or newer) Everport runs on. Empty picks one automatically (see below).                        |
 
-Commands are under the **Everport** category in the Command Palette: Add Tunnel, Start All, Stop All, Start, Stop, Retry, Copy URL, Open in Browser, Check Health, Remove, Run Doctor, Show Log, Refresh and Log in to Cloudflare.
+Both settings are read from your user settings only. A workspace's `.vscode/settings.json` cannot set them, so opening a repository can neither choose the program Everport runs nor make your services public.
+
+Commands are under the **Everport** category in the Command Palette: Add Tunnel, Start All, Stop All, Start, Stop, Retry, Copy URL, Open in Browser, Check Health, Remove, Run Doctor, Show Log, Refresh, Select Node.js and Log in to Cloudflare.
 
 ## Node.js and version managers
 
