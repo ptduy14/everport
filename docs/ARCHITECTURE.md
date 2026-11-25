@@ -107,7 +107,7 @@ In the data folder (see the README): `tunnels.json` (the tunnels you want, with 
 | `missing` | the preview is gone from Cloudflare (known after a health check)       |
 | `failed`  | the last operation failed; the status carries a code, message and hint |
 
-A health check adds `ok`, `not-found`, `mismatch` (a foreign Worker answers) or `unreachable`, and an `outdated` flag when the relay on Cloudflare runs older code than the installed Everport. A `not-found` answer makes the state `missing`, whatever the agent is doing. Every status read also sets `localDown` on an `active` tunnel whose local service refuses a TCP connection.
+A health check adds `ok`, `not-found`, `mismatch` (a foreign Worker answers) or `unreachable`, and an `outdated` flag when the relay on Cloudflare runs older code than the installed Everport. A `not-found` answer makes the state `missing`, whatever the agent is doing. A health check also sets `localDown` on an `active` tunnel whose local service refuses a TCP connection. It is a note, not a state: the tunnel works, the app behind it is not running.
 
 These are the names in the API and in `--json`. The CLI and the VS Code view show them to people as online, stopped, offline, missing and error (see [Tunnel states](reference.md#tunnel-states)). The core's hints name CLI commands; the extension rewords them as its own buttons, so both share one set of error codes.
 

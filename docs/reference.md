@@ -31,7 +31,7 @@ The CLI (`ls`) and the VS Code view use the same words. `--json` keeps the raw s
 | `missing` | Missing | `missing` | The URL is gone from Cloudflare. `everport up` or **Start** recreates it at the same address.           |
 | `error`   | Error   | `failed`  | The last operation failed. The reason and its fix are shown with it.                                    |
 
-An online tunnel whose local service does not accept connections is still `online`, with `"localDown": true` in `--json`. `ls` prints a warning under the table, and VS Code shows the row as "Your service isn't running". Everport checks this with a plain connection to the local port each time it reads the status, so a dev server that is still compiling does not count as down.
+A tunnel stays `online` when your app behind it is not running: the tunnel itself works, and callers get a `502` until you start the app. A health check (`ls --health`, **Check Health**) also tries a plain connection to each online tunnel's local port; if nothing listens, `--json` has `"localDown": true` and `ls --health` prints a note. A dev server that is still compiling accepts the connection, so it does not count as down.
 
 ## Environment variables
 

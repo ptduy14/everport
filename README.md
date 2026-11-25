@@ -116,7 +116,7 @@ everport rm widgets            # delete the tunnel and its preview from Cloudfla
 | `copy <tunnel>`           | Copies the URL to the clipboard.                                   |
 | `doctor`                  | Checks your setup and says how to fix each problem.                |
 
-`ls` shows each tunnel as `online`, `stopped` (you turned it off), `offline` (the background agent is not running), `missing` (gone from Cloudflare; `up` brings it back at the same address) or `error` (with a fix printed under the table). It also warns when a tunnel is online but your local service is not running.
+`ls` shows each tunnel as `online`, `stopped` (you turned it off), `offline` (the background agent is not running), `missing` (gone from Cloudflare; `up` brings it back at the same address) or `error` (with a fix printed under the table). With `--health` it also notes a tunnel whose app is not running.
 
 If Cloudflare cannot be reached (offline, logged out, or the relay Worker was deleted), `everport rm <tunnel> --local` forgets a tunnel on this computer only.
 

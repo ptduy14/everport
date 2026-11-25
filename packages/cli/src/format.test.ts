@@ -82,10 +82,9 @@ describe('tunnelWarnings', () => {
     expect(warnings.join(' ')).toContain('everport up');
   });
 
-  it('says when the local service of an online tunnel is not running', () => {
+  it('notes, without calling it a problem, an online tunnel whose app is not running', () => {
     expect(tunnelWarnings([status({ localDown: true })])).toEqual([
-      '! fe: nothing answers at localhost:3000, so callers get an error.',
-      '  Fix: start your local service; the tunnel itself is fine.',
+      'i fe: waiting for your app on localhost:3000; start it to serve requests.',
     ]);
   });
 

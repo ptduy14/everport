@@ -45,7 +45,7 @@ export interface TunnelStatus {
   health?: TunnelHealth;
   /** The relay on Cloudflare runs older code than this Everport (only with `health: true`). */
   outdated?: boolean;
-  /** The tunnel is online, but nothing accepts connections at its target: the local service is not running. */
+  /** Only with `status({ health: true })`: the tunnel is online, but nothing accepts connections at its target. */
   localDown?: boolean;
   error?: { code: string; message: string; hint: string };
 }
@@ -263,7 +263,7 @@ export class Everport {
         }
       }
       const info = await this.waitConnected(wanted.filter((t) => !errors.has(t.id)).map((t) => t.name));
-      return this.withLocal(this.toStatuses(await this.store.load(), info, errors));
+      return this.toStatuses(await this.store.load(), info, errors);
     });
   }
 
@@ -312,10 +312,11 @@ export class Everport {
           }),
       );
     }
-    return this.withLocal(this.toStatuses(config, await this.d.agent.status(), undefined, health));
+    const statuses = this.toStatuses(config, await this.d.agent.status(), undefined, health);
+    return options.health ? this.withLocal(statuses) : statuses;
   }
 
-  /** Marks online tunnels whose local service does not accept connections. A loopback connect is cheap. */
+  /** Marks online tunnels whose local service does not accept connections. Only done when asked (`health`). */
   private async withLocal(statuses: TunnelStatus[]): Promise<TunnelStatus[]> {
     const probe = this.d.local;
     if (!probe) return statuses;

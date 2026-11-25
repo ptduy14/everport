@@ -44,8 +44,7 @@ type Health = NonNullable<TunnelStatus['health']>;
 const BAD_HEALTH: Health[] = ['not-found', 'mismatch', 'unreachable'];
 
 /** An active tunnel whose public address does not answer as our relay (only known after a health check). */
-const unhealthy = (t: TunnelStatus): boolean =>
-  t.state === 'active' && ((!!t.health && BAD_HEALTH.includes(t.health)) || !!t.localDown);
+const unhealthy = (t: TunnelStatus): boolean => t.state === 'active' && !!t.health && BAD_HEALTH.includes(t.health);
 
 /** Switched on but not served: the agent is not running, or the preview is gone. Start fixes both. */
 const offline = (t: TunnelStatus): boolean => t.enabled && (t.state === 'down' || t.state === 'missing');
@@ -84,11 +83,6 @@ function tooltipOf(t: TunnelStatus, describe: (e: NonNullable<TunnelStatus['erro
     problem.push('**The URL is gone from Cloudflare.**', 'Fix: click Start: it comes back at the same URL.');
   } else if (t.state === 'down' && t.enabled) {
     problem.push("**The background agent isn't running.**", 'Fix: click Start, or Start All for every tunnel.');
-  } else if (t.state === 'active' && t.localDown) {
-    problem.push(
-      `**Nothing answers at \`${shortTarget(t.target)}\`.**`,
-      'Fix: start your local service. The tunnel itself is fine; callers get an error until then.',
-    );
   } else {
     const note = t.health && HEALTH_NOTES[t.health];
     if (note) problem.push(`**${note.summary}**`, `Fix: ${note.fix}`);
@@ -132,7 +126,6 @@ export function toItem(
   if (busy) return item({ id: 'loading~spin' }, `:${port} · ${busy}`);
   switch (t.state) {
     case 'active': {
-      if (t.localDown) return item({ id: 'warning', color: 'charts.yellow' }, `:${port} · Your service isn't running`);
       const description = `:${port} → ${publicName(t.url)}`;
       return unhealthy(t)
         ? item({ id: 'warning', color: 'charts.yellow' }, description)

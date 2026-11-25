@@ -43,15 +43,14 @@ describe('toItem', () => {
     },
   );
 
-  it('online but the local service does not answer: a warning, and it needs attention', () => {
+  it('does not treat a local service that is not running as a problem of the tunnel', () => {
     const t = mk({ localDown: true });
     const m = toItem(t, undefined);
-    expect(m.icon).toEqual({ id: 'warning', color: 'charts.yellow' });
-    expect(m.description).toBe(":3000 · Your service isn't running");
-    expect(m.contextValue).toBe('tunnel.on.unhealthy');
-    expect(m.tooltip).toContain('Nothing answers at `localhost:3000`');
-    expect(badgeCount([t])).toBe(1);
-    expect(viewMessage([t])).toBe('1 tunnel needs attention: api');
+    expect(m.icon).toEqual({ id: 'pass-filled', color: 'charts.green' });
+    expect(m.contextValue).toBe('tunnel.on');
+    expect(badgeCount([t])).toBe(0);
+    expect(viewMessage([t])).toBeUndefined();
+    expect(statusBar([t]).warning).toBe(false);
   });
 
   it('stopped', () => {

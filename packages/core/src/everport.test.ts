@@ -435,22 +435,22 @@ describe('status', () => {
     expect(await setup().everport.status()).toEqual([]);
   });
 
-  it('flags an online tunnel whose local service does not accept connections, without asking Cloudflare', async () => {
-    const { everport, stopped, cloud } = await withTunnels('fe');
+  it('checks the local services only when health is asked for, and then flags one that is not running', async () => {
+    const { everport, stopped } = await withTunnels('fe');
     await everport.add({ target: '3001', label: 'be' });
     stopped.add('http://127.0.0.1:3001');
-    cloud.calls.length = 0;
-    const by = Object.fromEntries((await everport.status()).map((s) => [s.label, s]));
+    expect((await everport.status()).some((s) => 'localDown' in s)).toBe(false);
+    expect((await everport.up()).some((s) => 'localDown' in s)).toBe(false);
+    const by = Object.fromEntries((await everport.status({ health: true })).map((s) => [s.label, s]));
     expect(by['be']).toMatchObject({ state: 'active', localDown: true });
     expect(by['fe']).not.toHaveProperty('localDown');
-    expect(cloud.calls).toEqual([]);
   });
 
   it('only checks the local service of online tunnels', async () => {
     const { everport, stopped } = await withTunnels('fe');
     await everport.down();
     stopped.add('http://127.0.0.1:3000');
-    expect((await everport.status())[0]).not.toHaveProperty('localDown');
+    expect((await everport.status({ health: true }))[0]).not.toHaveProperty('localDown');
   });
 
   it('maps what the agent says to a state', async () => {
