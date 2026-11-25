@@ -13,6 +13,7 @@ import {
   progressText,
   removeDetail,
   removeQuestion,
+  startedWaitingMessage,
   startAllSummary,
   subdomainNotice,
   targetError,
@@ -73,6 +74,18 @@ describe('messages', () => {
     expect(addedMessage(mk())).not.toContain('subdomain');
     expect(addedMessage(mk(), true)).toContain('"derrick" is your Cloudflare subdomain');
     expect(subdomainNotice('https://x-everport.derrick.workers.dev')).toContain('"derrick"');
+  });
+
+  it('says what to do next when the app behind a new or started tunnel is not running, without calling it an error', () => {
+    expect(addedMessage(mk(), false, false)).toBe(
+      'API is live at https://api-7f3k-everport.derrick.workers.dev. Nothing is running on localhost:3301 yet: start your app and requests will reach it.',
+    );
+    expect(startedWaitingMessage(mk())).toBe(
+      'API is online. Nothing is running on localhost:3301 yet: start your app and requests will reach it.',
+    );
+    expect(healthMessage(mk({ health: 'ok', localDown: true }))).toBe(
+      'API is healthy: its public URL answers. Nothing is running on localhost:3301 yet: start your app and requests will reach it.',
+    );
   });
 
   it('says what removing does to the address, with the real host', () => {

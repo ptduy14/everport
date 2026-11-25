@@ -604,13 +604,12 @@ describe('doctor', () => {
     expect(byName(await everport.doctor(), 'relay secret')).toMatchObject({ ok: false });
   });
 
-  it('says when a tunnel works but its local service does not answer', async () => {
+  it('notes, without failing the check, a tunnel that works while its app is not running', async () => {
     const { everport, stopped } = await withTunnels('fe');
     stopped.add('http://127.0.0.1:3000');
     expect(byName(await everport.doctor(), 'tunnel fe')).toMatchObject({
-      ok: false,
-      detail: expect.stringContaining('nothing answers at localhost:3000'),
-      hint: expect.stringContaining('Start your local service'),
+      ok: true,
+      detail: expect.stringContaining('waiting for your app on localhost:3000'),
     });
   });
 });

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+  NodeLocalProbe,
   NodePortScanner,
   EverportError,
   normalizeTarget,
@@ -21,6 +22,8 @@ import {
 import {
   DOWN_MESSAGES,
   addedMessage,
+  startedWaitingMessage,
+  waitingForApp,
   defaultLabel,
   doctorReport,
   errorText,
@@ -90,7 +93,13 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
       const added = app.statuses.find((t) => t.label === label);
       if (added?.state === 'active') {
         app.log('info', `✓ ${label} is live at ${added.url} (${((Date.now() - started) / 1000).toFixed(1)} s)`);
-        const pick = await vscode.window.showInformationMessage(addedMessage(added, first), 'Copy URL', 'Open');
+        const running = await appRunning(added);
+        if (!running) app.log('info', `  ${waitingForApp(added)}`);
+        const pick = await vscode.window.showInformationMessage(
+          addedMessage(added, first, running),
+          'Copy URL',
+          'Open',
+        );
         if (pick === 'Copy URL') await copyUrl(added);
         if (pick === 'Open') await openUrl(added);
       } else if (added?.state === 'failed' && added.error) {
@@ -124,6 +133,12 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
         if (needsUp(await ep.start(t.id))) await ep.up();
       });
       logTunnelResult(app, t.id);
+      // Right after Start is when a 502 would be blamed on Everport: say once if the app is not running.
+      const now = app.statuses.find((s) => s.id === t.id);
+      if (now?.state === 'active' && !(await appRunning(now))) {
+        app.log('info', `  ${waitingForApp(now)}`);
+        void vscode.window.showInformationMessage(startedWaitingMessage(now));
+      }
     }),
   );
 
@@ -179,7 +194,7 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
       );
       const now = app.statuses.find((s) => s.id === t.id) ?? t;
       const text = healthMessage(now);
-      const good = now.health === 'ok' && !now.localDown;
+      const good = now.health === 'ok'; // an app that is not running is a note, not a problem of the tunnel
       app.log(good || !now.health ? 'info' : 'warn', `${good ? '✓' : '✗'} ${text}`);
       void (now.health && !good ? vscode.window.showWarningMessage(text) : vscode.window.showInformationMessage(text));
     }),
@@ -243,6 +258,9 @@ function logTunnelResult(app: App, id: string): void {
   }
   app.log('warn', `${t.label}: ${STATE_WORDS[t.state]}`);
 }
+
+/** One TCP connect to the tunnel's local port: does something listen there? */
+const appRunning = (t: TunnelStatus): Promise<boolean> => new NodeLocalProbe().listening(t.target).catch(() => true);
 
 async function copyUrl(t: TunnelStatus): Promise<void> {
   await vscode.env.clipboard.writeText(t.url);

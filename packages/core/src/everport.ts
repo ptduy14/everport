@@ -420,11 +420,8 @@ export class Everport {
         const { health, codeVersion } = await this.d.deployer.checkTunnel(tunnel.url, tunnel.name);
         if (health === 'ok') {
           if (this.d.local && !(await this.d.local.listening(tunnel.target).catch(() => true))) {
-            return {
-              ok: false,
-              detail: `${tunnel.url} works, but nothing answers at ${shortTarget(tunnel.target)}`,
-              hint: 'Start your local service; the tunnel itself is fine.',
-            };
+            // The tunnel is fine; the app behind it is not started. A note, not a failure.
+            return { ok: true, detail: `${tunnel.url} works; waiting for your app on ${shortTarget(tunnel.target)}` };
           }
           return codeVersion === CODE_VERSION
             ? { ok: true, detail: tunnel.url }

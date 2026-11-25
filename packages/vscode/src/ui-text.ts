@@ -58,8 +58,14 @@ const subdomainOf = (url: string): string => new URL(url).hostname.split('.').at
 export const subdomainNotice = (url: string): string =>
   `Heads-up: "${subdomainOf(url)}" is your Cloudflare subdomain and may come from your email. It is in every URL you share.`;
 
-export const addedMessage = (t: TunnelStatus, first = false): string =>
-  `${t.label} is live at ${t.url}. This URL won't change.${first ? ` ${subdomainNotice(t.url)}` : ''}`;
+/** Said when a tunnel is up but nothing listens behind it yet: what to do next, not an error. */
+export const waitingForApp = (t: TunnelStatus): string =>
+  `Nothing is running on ${shortTarget(t.target)} yet: start your app and requests will reach it.`;
+
+export const addedMessage = (t: TunnelStatus, first = false, appRunning = true): string =>
+  `${t.label} is live at ${t.url}. ${appRunning ? "This URL won't change." : waitingForApp(t)}${first ? ` ${subdomainNotice(t.url)}` : ''}`;
+
+export const startedWaitingMessage = (t: TunnelStatus): string => `${t.label} is online. ${waitingForApp(t)}`;
 
 export const removeQuestion = (t: TunnelStatus): string => `Remove "${t.label}" and its public URL?`;
 
@@ -165,7 +171,7 @@ export function healthMessage(t: TunnelStatus): string {
   switch (t.health) {
     case 'ok':
       return t.localDown
-        ? `${t.label}: its public URL works, but nothing answers at ${shortTarget(t.target)}. Start your local service.`
+        ? `${t.label} is healthy: its public URL answers. ${waitingForApp(t)}`
         : `${t.label} is healthy: its public URL answers.`;
     case 'not-found':
       return `${t.label}: Cloudflare doesn't know this URL any more. Start All brings it back at the same URL.`;
