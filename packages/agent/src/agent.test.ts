@@ -136,6 +136,19 @@ describe('RelayAgent: forwarding requests', () => {
     );
   });
 
+  it('logs one line for a burst of requests that cannot reach the app', async () => {
+    const { relay, base } = await startRelay('fe');
+    const lines: string[] = [];
+    const logger = { info: () => {}, warn: (m: string) => void lines.push(m), error: () => {} };
+    const agent = newAgent({ logger });
+    await agent.addTunnel({ name: 'fe', url: base, target: 'http://127.0.0.1:1' });
+    await waitFor(() => relay.connectedAgents === 1);
+    for (let i = 0; i < 3; i++) await (await fetch(`${base}/x${i}`)).text();
+    expect(lines.filter((l) => l.includes('could not reach'))).toEqual([
+      'tunnel fe: a request could not reach localhost:1 (nothing is running there)',
+    ]);
+  });
+
   it('answers 502 naming the app when it fails in another way', () => {
     const reset = Object.assign(new Error('fetch failed'), {
       cause: Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),

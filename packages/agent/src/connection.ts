@@ -112,6 +112,9 @@ export function localErrorBody(e: unknown, target: string): string {
     : `Everport: the app on ${shortTarget(target)} failed to answer: ${describeError(e)}\n`;
 }
 
+/** At most one log line per tunnel this often about requests that could not reach the app. */
+const LOCAL_FAILURE_LOG_MS = 60_000;
+
 /** Failed reconnects before the log says the tunnel is still offline. */
 const OFFLINE_WARN_ATTEMPTS = 3;
 
@@ -127,6 +130,8 @@ export class TunnelConnection {
   /** When the last working connection dropped; undefined while connected or before the first one. */
   private droppedAt: number | undefined;
   private dropReason = '';
+  /** When the log last said that a request could not reach the app, so a burst of requests logs one line. */
+  private localFailureLoggedAt: number | undefined;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private stopped = false;
   private token = '';
@@ -188,6 +193,19 @@ export class TunnelConnection {
         // already closed
       }
     }
+  }
+
+  /** The agent runs in the background, so this line is how the person learns why their URL answered 502. */
+  private noteLocalFailure(e: unknown): void {
+    const now = this.now();
+    if (this.localFailureLoggedAt !== undefined && now - this.localFailureLoggedAt < LOCAL_FAILURE_LOG_MS) return;
+    this.localFailureLoggedAt = now;
+    const where = shortTarget(this.target);
+    this.deps.logger.warn(
+      appNotRunning(e)
+        ? `tunnel ${this.config.name}: a request could not reach ${where} (nothing is running there)`
+        : `tunnel ${this.config.name}: the app on ${where} failed to answer: ${describeError(e)}`,
+    );
   }
 
   /** Remembers the first drop of an outage; a socket that never opened is not a drop. */
@@ -384,6 +402,7 @@ export class TunnelConnection {
       await this.send(ws, encodeFrame(FrameType.RES_END, id));
     } catch (e) {
       if (abort.signal.aborted) return;
+      this.noteLocalFailure(e);
       if (!headSent) {
         const message = new TextEncoder().encode(localErrorBody(e, this.target));
         const errorHead = encodeResponseHead({ status: 502, headers: [['content-type', 'text/plain; charset=utf-8']] });

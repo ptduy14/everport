@@ -46,7 +46,7 @@ A tunnel stays `online` when your app behind it is not running: the tunnel itsel
 
 By default: `%LOCALAPPDATA%\everport` on Windows, `~/Library/Application Support/everport` on macOS, and `$XDG_DATA_HOME/everport` or `~/.local/share/everport` on Linux. Set `EVERPORT_DATA_DIR` to put it elsewhere.
 
-It holds `tunnels.json` (your tunnels), `relay-secret` (the shared secret between the agent and the relay) and `logs/`. In `logs/`, `agent.log` is the background agent's record of its connections (a dropped connection that comes back is one line; one that stays down is a warning) and `everport.log` holds Everport's own notes. Times are local, with the UTC offset. In VS Code, **Show Log** opens the Everport output channel, which prints the path of `agent.log` at the top.
+It holds `tunnels.json` (your tunnels), `relay-secret` (the shared secret between the agent and the relay) and `logs/`. In `logs/`, `agent.log` is the background agent's record of its connections (a dropped connection that comes back is one line; one that stays down is a warning), with a warning when requests cannot reach your app (at most one a minute per tunnel), and `everport.log` holds Everport's own notes. Times are local, with the UTC offset. In VS Code, **Show Log** opens the Everport output channel, which prints the path of `agent.log` at the top.
 
 ## Cloudflare login and wrangler
 
