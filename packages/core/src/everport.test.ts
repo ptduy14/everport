@@ -226,6 +226,16 @@ describe('up', () => {
     expect(agent.tunnels.has('fe')).toBe(true);
   });
 
+  it('does not bring a preview back into a Worker that is no longer an Everport relay', async () => {
+    const { everport, cloud } = await withTunnels('fe');
+    await everport.down();
+    cloud.worker(WORKER)!.previews.delete('fe');
+    cloud.worker(WORKER)!.regular = true;
+    const [after] = await everport.up();
+    expect(after).toMatchObject({ state: 'failed', error: { code: 'WORKER_NAME_TAKEN' } });
+    expect(cloud.preview(WORKER, 'fe')).toBeUndefined();
+  });
+
   it('takes a tunnel off the running agent before redeploying it, since the check would push the agent out', async () => {
     const { everport, cloud, agent } = await withTunnels('fe');
     cloud.worker(WORKER)!.previews.delete('fe'); // the agent is still running and still has it

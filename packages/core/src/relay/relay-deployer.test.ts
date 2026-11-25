@@ -294,12 +294,23 @@ describe('recreateTunnel', () => {
   it('is also how an existing preview gets new relay code', async () => {
     const { cloud, fs, deployer, newTunnel } = setup();
     const created = await newTunnel('fe');
-    expect((await deployer.checkTunnel(created.url, 'fe')).codeVersion).toBe('1');
+    expect((await deployer.checkTunnel(created.url, 'fe')).codeVersion).toBe(CODE_VERSION);
 
-    fs.seed('/bundle/worker.js', '// fake relay worker, code version 2');
+    fs.seed('/bundle/worker.js', '// fake relay worker, code version 99');
     await deployer.recreateTunnel({ workerName: WORKER, name: 'fe', secret: SECRET });
-    expect(cloud.preview(WORKER, 'fe')!.codeVersion).toBe('2');
-    expect((await deployer.checkTunnel(created.url, 'fe')).codeVersion).toBe('2');
+    expect(cloud.preview(WORKER, 'fe')!.codeVersion).toBe('99');
+    expect((await deployer.checkTunnel(created.url, 'fe')).codeVersion).toBe('99');
+  });
+
+  it('never adds a preview to a Worker that has become an ordinary one', async () => {
+    const { cloud, deployer, newTunnel } = setup();
+    await newTunnel('fe');
+    cloud.worker(WORKER)!.previews.delete('fe');
+    cloud.worker(WORKER)!.regular = true; // someone deployed their own code under that name
+    await expect(deployer.recreateTunnel({ workerName: WORKER, name: 'fe', secret: SECRET })).rejects.toMatchObject({
+      code: 'WORKER_NAME_TAKEN',
+    });
+    expect(cloud.preview(WORKER, 'fe')).toBeUndefined();
   });
 });
 

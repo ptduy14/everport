@@ -173,6 +173,14 @@ export class RelayDeployer {
     label?: string;
     secret: string;
   }): Promise<CreatedTunnel> {
+    // The Worker may have become an ordinary one since the tunnel was made: never add a preview to it then.
+    if ((await this.probeWorker(args.workerName)) === 'regular') {
+      throw new EverportError(
+        'WORKER_NAME_TAKEN',
+        `The Worker "${args.workerName}" now has deployed versions of its own, so it is no longer an Everport relay`,
+        'Everport never touches a Worker it did not create. Remove the tunnel; run "everport doctor" for details.',
+      );
+    }
     const dir = await this.prepareRelayDir(args.workerName);
     return this.deployPreview(dir, args.workerName, args.name, args.label ?? args.name, args.secret);
   }
