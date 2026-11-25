@@ -72,6 +72,12 @@ export interface HttpClient {
   get(url: string, opts?: { headers?: Record<string, string>; timeoutMs?: number }): Promise<HttpResponse>;
 }
 
+/** Whether a tunnel's local service accepts connections. */
+export interface LocalProbe {
+  /** True when something listens at the target's host and port. A target that is not on this computer counts as true. */
+  listening(target: string): Promise<boolean>;
+}
+
 export interface ProcessTable {
   /** Kills the process and all its descendants. */
   killTree(pid: number): Promise<void>;

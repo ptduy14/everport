@@ -8,6 +8,7 @@ export { createLayout, resolveDataDir, joinPath, type Layout, type PathEnv } fro
 export type * from './ports.js';
 export { NodeFileSystem } from './adapters/node-fs.js';
 export { FetchHttpClient } from './adapters/node-http.js';
+export { NodeLocalProbe } from './adapters/node-local-probe.js';
 export { NodeProcessTable, windowsAgentCommandLine } from './adapters/node-process-table.js';
 export {
   ConfigStore,

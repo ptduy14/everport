@@ -179,10 +179,9 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
       );
       const now = app.statuses.find((s) => s.id === t.id) ?? t;
       const text = healthMessage(now);
-      app.log(now.health === 'ok' || !now.health ? 'info' : 'warn', `${now.health === 'ok' ? '✓' : '✗'} ${text}`);
-      void (now.health && now.health !== 'ok'
-        ? vscode.window.showWarningMessage(text)
-        : vscode.window.showInformationMessage(text));
+      const good = now.health === 'ok' && !now.localDown;
+      app.log(good || !now.health ? 'info' : 'warn', `${good ? '✓' : '✗'} ${text}`);
+      void (now.health && !good ? vscode.window.showWarningMessage(text) : vscode.window.showInformationMessage(text));
     }),
   );
 

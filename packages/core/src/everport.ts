@@ -7,7 +7,15 @@ import { EventBus, type EverportEventListener } from './events.js';
 import { FileLock } from './lock.js';
 import type { Logger } from './logger.js';
 import type { Layout } from './paths.js';
-import type { AgentControl, AgentInfo, AgentTunnelInfo, FileSystem, ProcessTable, WranglerRunner } from './ports.js';
+import type {
+  AgentControl,
+  AgentInfo,
+  AgentTunnelInfo,
+  FileSystem,
+  LocalProbe,
+  ProcessTable,
+  WranglerRunner,
+} from './ports.js';
 import { defaultRandomHex } from './relay/names.js';
 import { RelayDeployer, type TunnelHealth } from './relay/relay-deployer.js';
 import { loadOrCreateRelaySecret } from './relay/secret.js';
@@ -19,7 +27,7 @@ import {
   summarizeFailure,
   wranglerNeedsNewerNode,
 } from './relay/wrangler.js';
-import { InvalidTargetError, normalizeTarget } from './target.js';
+import { InvalidTargetError, normalizeTarget, shortTarget } from './target.js';
 
 export type TunnelState = 'active' | 'stopped' | 'down' | 'missing' | 'failed';
 export type StopOutcome = 'stopped' | 'killed' | 'not-running';
@@ -37,6 +45,8 @@ export interface TunnelStatus {
   health?: TunnelHealth;
   /** The relay on Cloudflare runs older code than this Everport (only with `health: true`). */
   outdated?: boolean;
+  /** The tunnel is online, but nothing accepts connections at its target: the local service is not running. */
+  localDown?: boolean;
   error?: { code: string; message: string; hint: string };
 }
 
@@ -63,6 +73,8 @@ export interface EverportDeps {
   wrangler: WranglerRunner;
   /** Used by the lock that keeps two Everport processes from changing tunnels at once. */
   processTable: ProcessTable;
+  /** Checks that each online tunnel's local service accepts connections. Without it, nothing is checked. */
+  local?: LocalProbe;
   pid: number;
   /** Name of the relay Worker created by the first `add`. Default `everport`. */
   workerName?: string;
@@ -251,7 +263,7 @@ export class Everport {
         }
       }
       const info = await this.waitConnected(wanted.filter((t) => !errors.has(t.id)).map((t) => t.name));
-      return this.toStatuses(await this.store.load(), info, errors);
+      return this.withLocal(this.toStatuses(await this.store.load(), info, errors));
     });
   }
 
@@ -300,7 +312,20 @@ export class Everport {
           }),
       );
     }
-    return this.toStatuses(config, await this.d.agent.status(), undefined, health);
+    return this.withLocal(this.toStatuses(config, await this.d.agent.status(), undefined, health));
+  }
+
+  /** Marks online tunnels whose local service does not accept connections. A loopback connect is cheap. */
+  private async withLocal(statuses: TunnelStatus[]): Promise<TunnelStatus[]> {
+    const probe = this.d.local;
+    if (!probe) return statuses;
+    return Promise.all(
+      statuses.map(async (s) => {
+        if (s.state !== 'active') return s;
+        const listening = await probe.listening(s.target).catch(() => true);
+        return listening ? s : { ...s, localDown: true };
+      }),
+    );
   }
 
   /** Every check runs, whatever the others say. */
@@ -393,6 +418,13 @@ export class Everport {
       await check(`tunnel ${tunnel.label}`, async () => {
         const { health, codeVersion } = await this.d.deployer.checkTunnel(tunnel.url, tunnel.name);
         if (health === 'ok') {
+          if (this.d.local && !(await this.d.local.listening(tunnel.target).catch(() => true))) {
+            return {
+              ok: false,
+              detail: `${tunnel.url} works, but nothing answers at ${shortTarget(tunnel.target)}`,
+              hint: 'Start your local service; the tunnel itself is fine.',
+            };
+          }
           return codeVersion === CODE_VERSION
             ? { ok: true, detail: tunnel.url }
             : { ok: true, detail: `${tunnel.url} (relay code ${codeVersion}, this Everport ships ${CODE_VERSION})` };

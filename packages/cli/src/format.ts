@@ -75,6 +75,9 @@ export function tunnelWarnings(tunnels: TunnelStatus[], paint: Paint = plain): s
     } else if (t.health === 'unreachable') {
       problem(`${t.label}: cannot reach the public address.`);
       out.push(fix('Check your connection.'));
+    } else if (t.state === 'active' && t.localDown) {
+      problem(`${t.label}: nothing answers at ${shortTarget(t.target)}, so callers get an error.`);
+      out.push(fix('Start your local service; the tunnel itself is fine.'));
     }
     if (t.outdated) {
       out.push(paint(`i ${t.label}: the relay on Cloudflare is from an older Everport. It still works.`, 'dim'));

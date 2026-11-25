@@ -50,6 +50,7 @@ function setup() {
       agent,
       wrangler: cloud.wrangler,
       processTable,
+      local,
       pid: 100,
       randomHex,
       sleep: async () => {},
@@ -57,9 +58,12 @@ function setup() {
       pollMs: 10,
       nodeVersion,
     });
+  /** Local targets that refuse connections; every other target listens. */
+  const stopped = new Set<string>();
+  const local = { listening: async (target: string) => !stopped.has(target) };
   const everport = make();
   const store = new ConfigStore(fs, layout.configFile);
-  return { fs, layout, cloud, agent, events, seen, everport, store, make, deployer };
+  return { fs, layout, cloud, agent, events, seen, everport, store, make, deployer, stopped };
 }
 
 /** An Everport with tunnels already added, and the agent stopped, as after `everport down`. */
@@ -431,6 +435,24 @@ describe('status', () => {
     expect(await setup().everport.status()).toEqual([]);
   });
 
+  it('flags an online tunnel whose local service does not accept connections, without asking Cloudflare', async () => {
+    const { everport, stopped, cloud } = await withTunnels('fe');
+    await everport.add({ target: '3001', label: 'be' });
+    stopped.add('http://127.0.0.1:3001');
+    cloud.calls.length = 0;
+    const by = Object.fromEntries((await everport.status()).map((s) => [s.label, s]));
+    expect(by['be']).toMatchObject({ state: 'active', localDown: true });
+    expect(by['fe']).not.toHaveProperty('localDown');
+    expect(cloud.calls).toEqual([]);
+  });
+
+  it('only checks the local service of online tunnels', async () => {
+    const { everport, stopped } = await withTunnels('fe');
+    await everport.down();
+    stopped.add('http://127.0.0.1:3000');
+    expect((await everport.status())[0]).not.toHaveProperty('localDown');
+  });
+
   it('maps what the agent says to a state', async () => {
     const { everport, agent } = await withTunnels('fe', 'be', 'cms', 'off');
     agent.tunnels.get('be')!.state = 'connecting';
@@ -580,6 +602,16 @@ describe('doctor', () => {
     const { everport, fs, layout } = await withTunnels('fe');
     await fs.remove(layout.relaySecretFile);
     expect(byName(await everport.doctor(), 'relay secret')).toMatchObject({ ok: false });
+  });
+
+  it('says when a tunnel works but its local service does not answer', async () => {
+    const { everport, stopped } = await withTunnels('fe');
+    stopped.add('http://127.0.0.1:3000');
+    expect(byName(await everport.doctor(), 'tunnel fe')).toMatchObject({
+      ok: false,
+      detail: expect.stringContaining('nothing answers at localhost:3000'),
+      hint: expect.stringContaining('Start your local service'),
+    });
   });
 });
 

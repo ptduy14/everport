@@ -2,6 +2,7 @@
 import {
   normalizeTarget,
   normalizeTunnelName,
+  shortTarget,
   type DoctorCheck,
   type StopOutcome,
   type TunnelStatus,
@@ -163,7 +164,9 @@ export function startAllSummary(ts: TunnelStatus[]): { ok: boolean; text: string
 export function healthMessage(t: TunnelStatus): string {
   switch (t.health) {
     case 'ok':
-      return `${t.label} is healthy: its public URL answers.`;
+      return t.localDown
+        ? `${t.label}: its public URL works, but nothing answers at ${shortTarget(t.target)}. Start your local service.`
+        : `${t.label} is healthy: its public URL answers.`;
     case 'not-found':
       return `${t.label}: Cloudflare doesn't know this URL any more. Start All brings it back at the same URL.`;
     case 'mismatch':

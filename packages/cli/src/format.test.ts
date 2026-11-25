@@ -82,6 +82,13 @@ describe('tunnelWarnings', () => {
     expect(warnings.join(' ')).toContain('everport up');
   });
 
+  it('says when the local service of an online tunnel is not running', () => {
+    expect(tunnelWarnings([status({ localDown: true })])).toEqual([
+      '! fe: nothing answers at localhost:3000, so callers get an error.',
+      '  Fix: start your local service; the tunnel itself is fine.',
+    ]);
+  });
+
   it('says an address cannot be reached, and notes old relay code as information', () => {
     expect(tunnelWarnings([status({ health: 'unreachable' })])[0]).toContain('cannot reach');
     const old = tunnelWarnings([status({ health: 'ok', outdated: true })]);

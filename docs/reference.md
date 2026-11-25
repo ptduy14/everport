@@ -31,6 +31,8 @@ The CLI (`ls`) and the VS Code view use the same words. `--json` keeps the raw s
 | `missing` | Missing | `missing` | The URL is gone from Cloudflare. `everport up` or **Start** recreates it at the same address.           |
 | `error`   | Error   | `failed`  | The last operation failed. The reason and its fix are shown with it.                                    |
 
+An online tunnel whose local service does not accept connections is still `online`, with `"localDown": true` in `--json`. `ls` prints a warning under the table, and VS Code shows the row as "Your service isn't running". Everport checks this with a plain connection to the local port each time it reads the status, so a dev server that is still compiling does not count as down.
+
 ## Environment variables
 
 | Variable               | Meaning                                                                        |
@@ -109,6 +111,7 @@ Start with `everport doctor`: it checks each piece and prints a fix for every fa
 
 - **"You are not logged in to Cloudflare"**: run `everport login`, or set the API token variables.
 - **The URL answers `503 tunnel offline`**: the agent is not running. Run `everport up`.
+- **The URL answers `502` with "local server error"**: the tunnel works, but your local service is not running or refused the call. Start it; `everport ls` and the VS Code view say so too.
 - **A tunnel shows `missing`**: its preview was lost on Cloudflare. `everport up` recreates it at the same address.
 - **A tunnel shows a health of `mismatch`**: another Worker answers at that address. Remove the tunnel and add it again.
 - **The first command takes a minute**: wrangler is downloaded once through `npx`, then cached.
