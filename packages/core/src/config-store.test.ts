@@ -64,6 +64,17 @@ describe('ConfigStore.load', () => {
     await expect(new ConfigStore(fs, FILE).load()).rejects.toMatchObject({ code: 'CONFIG_INVALID' });
     expect(fs.text(FILE)).toBe(content);
   });
+
+  it('says so when the file comes from the zrok-based Everport, and leaves it alone', async () => {
+    const legacy = JSON.stringify({ version: 1, zrokVersion: '2.0.9', tunnels: [] });
+    const fs = new FakeFs().seed(FILE, legacy);
+    await expect(new ConfigStore(fs, FILE).load()).rejects.toMatchObject({
+      code: 'CONFIG_INVALID',
+      message: expect.stringContaining('older zrok-based Everport'),
+      hint: expect.stringContaining('Rename or delete'),
+    });
+    expect(fs.text(FILE)).toBe(legacy);
+  });
 });
 
 describe('ConfigStore.save', () => {

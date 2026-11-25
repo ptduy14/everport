@@ -52,6 +52,13 @@ export const emptyConfig = (): Config => ({ version: 1, relay: null, tunnels: []
 
 /** Upgrades older config shapes step by step. Only v1 exists so far. */
 export function migrate(raw: unknown, file: string): unknown {
+  if (raw !== null && typeof raw === 'object' && 'zrokVersion' in raw) {
+    throw new EverportError(
+      'CONFIG_INVALID',
+      `${file} is from the older zrok-based Everport, which this version cannot use`,
+      'Rename or delete that file, then add your tunnels again (they get new addresses).',
+    );
+  }
   const version = (raw as { version?: unknown } | null)?.version;
   if (typeof version !== 'number') {
     throw new EverportError('CONFIG_INVALID', `${file} has no numeric "version"`, `Fix the file by hand or delete it.`);
