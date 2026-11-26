@@ -125,13 +125,37 @@ export class RelayDeployer {
       seen.add(name);
     }
 
-    const state = await this.probeWorker(workerName);
+    // Asked together: each wrangler call takes seconds.
+    const [state, existing] = await Promise.all([
+      this.probeWorker(workerName),
+      Promise.all(
+        planned.map((p) =>
+          this.previewExists(workerName, p.name).then(
+            (exists) => ({ ...p, exists }),
+            (error: unknown) => ({ ...p, error }),
+          ),
+        ),
+      ),
+    ]);
     if (state === 'regular') {
       throw new EverportError(
         'WORKER_NAME_TAKEN',
         `A Worker named "${workerName}" already exists in your account and is not an Everport relay`,
         'Choose another relay name; Everport never touches a Worker it did not create.',
       );
+    }
+    if (state === 'previews-only') {
+      // Another computer on the same account may own a preview of this name: deploying would take it over.
+      for (const item of existing) {
+        if ('error' in item) throw item.error;
+        if (item.exists) {
+          throw new EverportError(
+            'TUNNEL_EXISTS',
+            `A tunnel named "${item.name}" already exists on Cloudflare (from "${item.label}"), maybe made on another computer`,
+            'Pick another label.',
+          );
+        }
+      }
     }
 
     const dir = await this.prepareRelayDir(workerName);

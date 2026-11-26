@@ -103,13 +103,13 @@ describe('createTunnel', () => {
       subdomain: 'example',
       codeVersion: CODE_VERSION,
     });
-    expect(commands()).toEqual(['versions list', 'preview --name']);
+    expect(commands()).toEqual(['versions list', 'preview secret', 'preview --name']);
 
     const dir = '/data/relay';
     expect(fs.text(`${dir}/wrangler.toml`)).toContain('name = "everport"');
     expect(fs.text(`${dir}/worker.js`)).toBe(`// fake relay worker, code version ${CODE_VERSION}`);
 
-    const deploy = cloud.calls[1]!;
+    const deploy = cloud.calls[2]!;
     expect(deploy.cwd).toBe(dir);
     expect(deploy.args).toEqual(
       expect.arrayContaining([
@@ -142,14 +142,28 @@ describe('createTunnel', () => {
   });
 
   it('never touches a Worker that is not its own', async () => {
-    const { cloud, deployer } = setup();
+    const { cloud, deployer, commands } = setup();
     cloud.workers.set(WORKER, { regular: true, previews: new Map() });
     await expect(
       deployer.createTunnel({ workerName: WORKER, secret: SECRET, taken: [], label: 'fe' }),
     ).rejects.toMatchObject({
       code: 'WORKER_NAME_TAKEN',
     });
-    expect(cloud.calls.map((c) => c.args[0])).toEqual(['versions']);
+    expect(commands()).not.toContain('preview --name');
+  });
+
+  it('refuses a name already on Cloudflare (another computer on the same account), and leaves that preview alone', async () => {
+    const { cloud, deployer, newTunnel, commands } = setup();
+    await newTunnel('fe'); // made elsewhere: not in this computer's list
+    const before = cloud.preview(WORKER, 'fe')!;
+    cloud.calls.length = 0;
+    await expect(
+      deployer.createTunnel({ workerName: WORKER, secret: 'cd'.repeat(32), taken: [], label: 'fe' }),
+    ).rejects.toMatchObject({ code: 'TUNNEL_EXISTS' });
+    expect(commands()).not.toContain('preview --name');
+    expect(commands()).not.toContain('preview delete');
+    expect(cloud.preview(WORKER, 'fe')).toBe(before);
+    expect(cloud.preview(WORKER, 'fe')!.secret).toBe(SECRET);
   });
 
   it('adds a preview to a Worker that has only previews', async () => {
@@ -238,7 +252,7 @@ describe('createTunnels', () => {
     expect(created.map((c) => c.name)).toEqual(labels);
     expect(commands().filter((c) => c === 'versions list')).toHaveLength(1);
 
-    const deploys = cloud.calls.filter((c) => c.args[0] === 'preview');
+    const deploys = cloud.calls.filter((c) => c.args[0] === 'preview' && c.args[1] === '--name');
     expect(deploys).toHaveLength(3);
     const [first, second, third] = deploys as [(typeof deploys)[0], (typeof deploys)[0], (typeof deploys)[0]];
     expect(first.finishedAt).toBeLessThanOrEqual(second.startedAt);
@@ -251,7 +265,7 @@ describe('createTunnels', () => {
     await newTunnel('first');
     cloud.calls.length = 0;
     await deployer.createTunnels({ workerName: WORKER, secret: SECRET, taken: ['first'], labels });
-    const deploys = cloud.calls.filter((c) => c.args[0] === 'preview');
+    const deploys = cloud.calls.filter((c) => c.args[0] === 'preview' && c.args[1] === '--name');
     expect(deploys[1]!.startedAt).toBeLessThan(deploys[0]!.finishedAt!);
   });
 
