@@ -245,6 +245,19 @@ describe('up', () => {
     expect(agent.tunnels.has('fe')).toBe(true);
   });
 
+  it('puts the current relay code on a preview that runs an older one, at the same address', async () => {
+    const { everport, fs, agent } = setup();
+    fs.seed('/bundle/worker.js', '// fake relay worker, code version 0');
+    const added = await everport.add({ target: '3000', label: 'fe' });
+    fs.seed('/bundle/worker.js', `// fake relay worker, code version ${CODE_VERSION}`);
+    agent.calls.length = 0;
+
+    const [after] = await everport.up();
+    expect(after).toMatchObject({ state: 'active', url: added.url });
+    expect(agent.calls.indexOf('removeTunnel fe')).toBeLessThan(agent.calls.lastIndexOf('addTunnel fe'));
+    expect((await everport.status({ health: true }))[0]).toMatchObject({ outdated: false });
+  });
+
   it('does not bring a preview back into a Worker that is no longer an Everport relay', async () => {
     const { everport, cloud } = await withTunnels('fe');
     await everport.down();

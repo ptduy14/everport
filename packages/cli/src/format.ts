@@ -82,7 +82,12 @@ export function tunnelWarnings(tunnels: TunnelStatus[], paint: Paint = plain): s
       );
     }
     if (t.outdated) {
-      out.push(paint(`i ${t.label}: the relay on Cloudflare is from an older Everport. It still works.`, 'dim'));
+      out.push(
+        paint(
+          `! ${t.label}: the relay on Cloudflare is from an older Everport. Run "everport up" to update it.`,
+          'dim',
+        ),
+      );
     }
   }
   return out;

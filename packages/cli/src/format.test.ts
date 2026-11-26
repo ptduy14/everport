@@ -88,11 +88,12 @@ describe('tunnelWarnings', () => {
     ]);
   });
 
-  it('says an address cannot be reached, and notes old relay code as information', () => {
+  it('says an address cannot be reached, and warns about old relay code with the fix', () => {
     expect(tunnelWarnings([status({ health: 'unreachable' })])[0]).toContain('cannot reach');
     const old = tunnelWarnings([status({ health: 'ok', outdated: true })]);
     expect(old).toHaveLength(1);
-    expect(old[0]!.startsWith('i ')).toBe(true);
+    expect(old[0]!.startsWith('! ')).toBe(true);
+    expect(old[0]).toContain('everport up');
   });
 });
 

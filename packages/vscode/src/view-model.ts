@@ -88,7 +88,7 @@ function tooltipOf(t: TunnelStatus, describe: (e: NonNullable<TunnelStatus['erro
     if (note) problem.push(`**${note.summary}**`, `Fix: ${note.fix}`);
   }
   if (t.outdated)
-    problem.push('$(info) The relay on Cloudflare is from an older Everport. It still works; nothing to do.');
+    problem.push('$(warning) The relay on Cloudflare is from an older Everport. Click Start All to update it.');
   const footer = '_$(lock) Public URL · stays the same until you remove this tunnel_';
   return [head, ...(problem.length ? [problem.join('  \n')] : []), footer].join('\n\n---\n\n');
 }

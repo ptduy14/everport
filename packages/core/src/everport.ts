@@ -29,6 +29,10 @@ import {
 } from './relay/wrangler.js';
 import { InvalidTargetError, normalizeTarget, shortTarget } from './target.js';
 
+/** Relay code from an older Everport. A newer one (another machine's Everport) is left alone. */
+const isOlderRelay = (codeVersion: string | undefined): boolean =>
+  codeVersion !== undefined && Number(codeVersion) < Number(CODE_VERSION);
+
 export type TunnelState = 'active' | 'stopped' | 'down' | 'missing' | 'failed';
 export type StopOutcome = 'stopped' | 'killed' | 'not-running';
 
@@ -483,8 +487,15 @@ export class Everport {
    * agent out, so a tunnel is taken off the agent before it is redeployed.
    */
   private async checkPreview(workerName: string, tunnel: Tunnel, secret: string): Promise<TunnelError | undefined> {
-    const { health } = await this.d.deployer.checkTunnel(tunnel.url, tunnel.name);
-    if (health === 'ok') return undefined;
+    const { health, codeVersion } = await this.d.deployer.checkTunnel(tunnel.url, tunnel.name);
+    if (health === 'ok') {
+      // Relay code 1 lets any WebSocket (a page's live reload, say) become the agent: it must not stay.
+      if (!isOlderRelay(codeVersion)) return undefined;
+      return this.redeploy(workerName, tunnel, secret, {
+        loginReason: `The relay of "${tunnel.label}" is outdated and Cloudflare needs a login to update it`,
+        done: () => `Updated the relay of ${tunnel.label}`,
+      });
+    }
     if (health === 'unreachable') {
       return toTunnelError(
         new EverportError(
@@ -503,15 +514,28 @@ export class Everport {
         ),
       );
     }
+    return this.redeploy(workerName, tunnel, secret, {
+      loginReason: `The preview of "${tunnel.label}" is gone and Cloudflare needs a login to bring it back`,
+      done: (url) => `Brought ${tunnel.label} back at ${url}`,
+      mustBeGone: true,
+    });
+  }
+
+  /**
+   * Deploys the tunnel's preview again under its name, with this Everport's relay code. The agent lets go of the
+   * tunnel first, since the check after the deploy connects as the agent.
+   */
+  private async redeploy(
+    workerName: string,
+    tunnel: Tunnel,
+    secret: string,
+    how: { loginReason: string; done: (url: string) => string; mustBeGone?: boolean },
+  ): Promise<TunnelError | undefined> {
     try {
       if (!(await this.d.deployer.isLoggedIn())) {
-        throw new EverportError(
-          'NOT_LOGGED_IN',
-          `The preview of "${tunnel.label}" is gone and Cloudflare needs a login to bring it back`,
-          'Run "everport login", then "everport up".',
-        );
+        throw new EverportError('NOT_LOGGED_IN', how.loginReason, 'Run "everport login", then "everport up".');
       }
-      if (await this.d.deployer.previewExists(workerName, tunnel.name)) {
+      if (how.mustBeGone && (await this.d.deployer.previewExists(workerName, tunnel.name))) {
         throw new EverportError(
           'RELAY_MISMATCH',
           `${tunnel.url} does not answer, but the preview exists on Cloudflare`,
@@ -527,7 +551,7 @@ export class Everport {
         });
         tunnel.url = back.url;
       }
-      this.d.events.emit('tunnel:ready', `Brought ${tunnel.label} back at ${back.url}`, { id: tunnel.id });
+      this.d.events.emit('tunnel:ready', how.done(back.url), { id: tunnel.id });
       return undefined;
     } catch (e) {
       return toTunnelError(e);
@@ -586,7 +610,7 @@ export class Everport {
         ? {
             ...status,
             health: health.health,
-            ...(health.codeVersion !== undefined && { outdated: health.codeVersion !== CODE_VERSION }),
+            ...(health.codeVersion !== undefined && { outdated: isOlderRelay(health.codeVersion) }),
           }
         : status;
 
