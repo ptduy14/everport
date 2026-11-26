@@ -9,12 +9,9 @@ Served from your own Cloudflare account. Managed from the CLI or VS Code.
 
 [![ci](https://github.com/ptduy14/everport/actions/workflows/ci.yml/badge.svg)](https://github.com/ptduy14/everport/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-<!-- TODO(publish): after npm, the Marketplace and Open VSX are live, add these badges next to the two above, then check each one renders:
 [![npm](https://img.shields.io/npm/v/everport.svg)](https://www.npmjs.com/package/everport)
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/everport-dev.everport-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=everport-dev.everport-vscode)
+[![VS Code Marketplace](https://vsmarketplacebadges.dev/version-short/everport-dev.everport-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=everport-dev.everport-vscode)
 [![Open VSX](https://img.shields.io/open-vsx/v/everport-dev/everport-vscode.svg)](https://open-vsx.org/extension/everport-dev/everport-vscode)
--->
 
 [Quick start](#quick-start) · [How it works](#how-it-works) · [Install](#install) · [Use](#use) · [Good to know](#good-to-know) · [Reference](docs/reference.md)
 
@@ -78,11 +75,7 @@ The package has no runtime dependencies. It holds the CLI (`everport`, alias `ep
 code --install-extension everport-dev.everport-vscode
 ```
 
-It needs VS Code 1.90 or newer and Node.js 22.12 or newer on your computer. It is also published on Open VSX.
-
-<!-- TODO(publish): once live, link the pages here, for example:
-Get it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=everport-dev.everport-vscode) or [Open VSX](https://open-vsx.org/extension/everport-dev/everport-vscode).
--->
+It needs VS Code 1.90 or newer and Node.js 22.12 or newer on your computer. Get it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=everport-dev.everport-vscode) or [Open VSX](https://open-vsx.org/extension/everport-dev/everport-vscode).
 
 **From source:**
 
