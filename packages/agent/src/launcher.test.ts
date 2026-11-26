@@ -1,3 +1,4 @@
+import { createServer, type AddressInfo } from 'node:net';
 import { NodeFileSystem, NodeProcessTable } from '@everport/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runDaemon, type Daemon } from './daemon.js';
@@ -12,6 +13,15 @@ afterEach(async () => {
 });
 
 const SPAWNED_PID = 777;
+
+/** A port that was free a moment ago: connecting to it is refused. */
+async function closedPort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  await new Promise((resolve) => server.close(resolve));
+  return port;
+}
 
 /**
  * A launcher whose "spawn" starts the daemon inside the test process, recording the fake pid 777 as its own.
@@ -133,6 +143,15 @@ describe('findAgent', () => {
     expect(await fs.exists(layout.agentStateFile)).toBe(false);
   });
 
+  it('removes an agent.json whose pid now belongs to another process (its control port is closed)', async () => {
+    const { deps, fs, layout, processTable } = await setup();
+    await writeAgentState(fs, layout.agentStateFile, { pid: 4246, port: await closedPort(), token: 't', startedAt: 1 });
+    processTable.alive.add(4246); // after Windows Fast Startup the boot time does not move, so this looks current
+    expect(await findAgent(deps)).toBeNull();
+    expect(await fs.exists(layout.agentStateFile)).toBe(false);
+    expect(await fs.readText(layout.agentLogFile)).toContain('agent (pid 4246) is gone');
+  });
+
   it('finds the agent that is running', async () => {
     const { deps } = await setup();
     const started = await startAgent(deps);
@@ -165,6 +184,15 @@ describe('stopAgent', () => {
     processTable.alive.add(4247);
     await stopAgent(deps, { timeoutMs: 100, pollMs: 20 });
     expect(await fs.readText(layout.agentLogFile)).toContain('agent (pid 4247) did not stop when asked: killed it');
+  });
+
+  it('never kills a pid whose control port is closed: it is another process now', async () => {
+    const { deps, fs, layout, processTable } = await setup();
+    await writeAgentState(fs, layout.agentStateFile, { pid: 4248, port: await closedPort(), token: 't', startedAt: 1 });
+    processTable.alive.add(4248);
+    expect(await stopAgent(deps, { timeoutMs: 200, pollMs: 20 })).toBe('not-running');
+    expect(processTable.killed).toEqual([]);
+    expect(await fs.exists(layout.agentStateFile)).toBe(false);
   });
 
   it('never kills by a pid recorded before a restart', async () => {

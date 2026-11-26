@@ -33,6 +33,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const isStale = (state: { pid: number; startedAt: number }, processTable: ProcessTable): boolean =>
   !processTable.isAlive(state.pid) || startedBeforeBoot(state.startedAt, processTable);
 
+/**
+ * A live agent always listens on its control port. A refused connection means the recorded pid now belongs to
+ * another process (Windows reuses pids, and Fast Startup keeps the boot time, so isStale cannot tell).
+ */
+const refused = (e: unknown): boolean => e instanceof EverportError && /ECONNREFUSED/.test(e.message);
+
 /** Writes to agent.log what another process did to the agent, so the log explains an agent that is gone. */
 async function noteInAgentLog(fs: FileSystem, layout: Layout, message: string): Promise<void> {
   const log = new FileLogger(fs, layout.agentLogFile);
@@ -55,7 +61,12 @@ export async function findAgent({ fs, processTable, layout }: FindDeps): Promise
   try {
     await client.status();
     return client;
-  } catch {
+  } catch (e) {
+    if (refused(e)) {
+      await removeAgentState(fs, layout.agentStateFile, state.pid);
+      await noteInAgentLog(fs, layout, `agent (pid ${state.pid}) is gone: its control port is closed`);
+      return null;
+    }
     throw new EverportError(
       'AGENT_NOT_RUNNING',
       `agent.json points to process ${state.pid}, which is running but does not answer`,
@@ -155,7 +166,15 @@ export async function stopAgent(
     return 'not-running';
   }
 
-  await new AgentClient(state, 2000).shutdown().catch(() => {}); // an agent that cannot answer gets killed below
+  const asked = await new AgentClient(state, 2000).shutdown().then(
+    () => undefined,
+    (e: unknown) => e, // an agent that cannot answer gets killed below
+  );
+  if (refused(asked)) {
+    // Nothing listens: the pid is another process now, which must never be killed.
+    await removeAgentState(fs, layout.agentStateFile, state.pid);
+    return 'not-running';
+  }
   const deadline = Date.now() + (options.timeoutMs ?? 5000);
   while (processTable.isAlive(state.pid) && Date.now() < deadline) await sleep(options.pollMs ?? 50);
 

@@ -56,9 +56,10 @@ export class AgentClient {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (e) {
+      const cause = e instanceof Error && e.cause instanceof Error ? `: ${e.cause.message}` : '';
       throw new EverportError(
         'AGENT_NOT_RUNNING',
-        `Cannot reach the agent: ${e instanceof Error ? e.message : String(e)}`,
+        `Cannot reach the agent: ${e instanceof Error ? e.message : String(e)}${cause}`,
         'Run "everport up" to start it.',
       );
     }
