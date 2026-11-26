@@ -137,4 +137,5 @@ We have not measured how much of this quota long sessions use.
 - Cancelling a request halfway can take about 30 seconds to reach your local service.
 - A tunnel's name becomes part of its hostname, so labels are lowercased, cleaned and shortened to fit.
 - If something other than your relay answers at a tunnel's address, `up` refuses to touch it and tells you.
+- Your app receives `Host: 127.0.0.1:<port>` (or the host of its target). The public host is in `X-Forwarded-Host` and the scheme in `X-Forwarded-Proto` (`https`), so an app that builds absolute links (redirects, OAuth callbacks) should read those. Everport sets `X-Forwarded-Host` itself and ignores one sent by a caller.
 - Not supported yet: WebSockets of your own app (for example hot reload), streaming uploads, request flow control.

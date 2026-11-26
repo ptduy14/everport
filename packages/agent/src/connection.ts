@@ -383,6 +383,9 @@ export class TunnelConnection {
       const headers = new Headers();
       for (const [k, v] of filterForOrigin(head.headers)) headers.append(k, v);
       headers.set('accept-encoding', 'identity');
+      // The local app sees Host: 127.0.0.1:<port>; this tells it the public address. Set, never passed through, so a
+      // caller cannot make the app build links to another host.
+      headers.set('x-forwarded-host', new URL(this.config.url).host);
       const response = await fetch(buildTargetUrl(this.target, head.path), {
         method: head.method,
         headers,

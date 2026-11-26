@@ -72,6 +72,12 @@ describe('RelayAgent: forwarding requests', () => {
     expect(seen.headers['accept-encoding']).toBe('identity');
   });
 
+  it('tells the local service the public host, and ignores one a caller sends', async () => {
+    const t = await serve((_req, res) => void res.end('ok'));
+    await fetch(`${t.base}/`, { headers: { 'x-forwarded-host': 'evil.example' } });
+    expect(t.origin.seen[0]!.headers['x-forwarded-host']).toBe(new URL(t.base).host);
+  });
+
   it('delivers a 150 KB upload byte for byte', async () => {
     const upload = Uint8Array.from({ length: 150_000 }, (_, i) => i % 251);
     const t = await serve(async (req, res) => {
