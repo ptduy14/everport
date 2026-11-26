@@ -11,6 +11,7 @@ import {
   parsePreviewJson,
   parseWorkerState,
   previewMissing,
+  retryLostTokenRefresh,
   wranglerError,
   type PreviewInfo,
   type WorkerState,
@@ -59,6 +60,8 @@ const sleepDefault = (ms: number) => new Promise<void>((resolve) => setTimeout(r
 
 export class RelayDeployer {
   private loginCache: { value: boolean; at: number } | undefined;
+  private loginAsking: Promise<boolean> | undefined;
+  private readonly wrangler: WranglerRunner;
   private readonly randomHex: (bytes: number) => string;
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
@@ -67,21 +70,28 @@ export class RelayDeployer {
     this.randomHex = deps.randomHex ?? defaultRandomHex;
     this.now = deps.now ?? Date.now;
     this.sleep = deps.sleep ?? sleepDefault;
+    this.wrangler = retryLostTokenRefresh(deps.wrangler, this.sleep);
   }
 
   /** Whether wrangler is logged in. The answer is kept for a while: asking wrangler takes 4 to 6 seconds. */
   async isLoggedIn(options: { fresh?: boolean } = {}): Promise<boolean> {
     const ttl = this.deps.loginCacheMs ?? 10 * 60_000;
     if (!options.fresh && this.loginCache && this.now() - this.loginCache.at < ttl) return this.loginCache.value;
-    const result = await this.deps.wrangler.run(['whoami', '--json'], { timeoutMs: 60_000 });
-    const value = parseLoggedIn(result);
-    this.loginCache = { value, at: this.now() };
-    return value;
+    // Callers at the same moment share one wrangler run: two would race to refresh the login token.
+    this.loginAsking ??= this.wrangler
+      .run(['whoami', '--json'], { timeoutMs: 60_000 })
+      .then((result) => {
+        const value = parseLoggedIn(result);
+        this.loginCache = { value, at: this.now() };
+        return value;
+      })
+      .finally(() => (this.loginAsking = undefined));
+    return this.loginAsking;
   }
 
   /** `wrangler login`: opens the browser and waits for the person. Everport never sees the credentials. */
   async login(signal?: AbortSignal): Promise<void> {
-    const result = await this.deps.wrangler.run(['login'], {
+    const result = await this.wrangler.run(['login'], {
       interactive: true,
       timeoutMs: 5 * 60_000,
       ...(signal && { signal }),
@@ -95,7 +105,7 @@ export class RelayDeployer {
 
   /** does a Worker of this name exist, and is it only previews. */
   async probeWorker(workerName: string): Promise<WorkerState> {
-    const result = await this.deps.wrangler.run(['versions', 'list', '--name', workerName, '--json'], {
+    const result = await this.wrangler.run(['versions', 'list', '--name', workerName, '--json'], {
       timeoutMs: 60_000,
     });
     return parseWorkerState(result);
@@ -211,7 +221,7 @@ export class RelayDeployer {
 
   /** Removes a preview. One that is already gone counts as removed. */
   async removeTunnel(workerName: string, name: string): Promise<void> {
-    const result = await this.deps.wrangler.run(
+    const result = await this.wrangler.run(
       ['preview', 'delete', '--name', name, '--worker-name', workerName, '--skip-confirmation'],
       { timeoutMs: 120_000 },
     );
@@ -220,7 +230,7 @@ export class RelayDeployer {
 
   /** Removes the whole Worker. Only for cleaning up; removing one tunnel never calls this. */
   async deleteRelay(workerName: string): Promise<void> {
-    const result = await this.deps.wrangler.run(['delete', '--name', workerName, '--force'], { timeoutMs: 120_000 });
+    const result = await this.wrangler.run(['delete', '--name', workerName, '--force'], { timeoutMs: 120_000 });
     if (result.code !== 0 && !/\[code: 10007\]|does not exist/i.test(result.stderr)) {
       throw wranglerError(result, 'removing the relay');
     }
@@ -228,12 +238,9 @@ export class RelayDeployer {
 
   /** Whether the preview exists, by asking Cloudflare (not by calling its URL). */
   async previewExists(workerName: string, name: string): Promise<boolean> {
-    const result = await this.deps.wrangler.run(
-      ['preview', 'secret', 'list', '--name', name, '--worker-name', workerName],
-      {
-        timeoutMs: 60_000,
-      },
-    );
+    const result = await this.wrangler.run(['preview', 'secret', 'list', '--name', name, '--worker-name', workerName], {
+      timeoutMs: 60_000,
+    });
     if (result.code === 0) return true;
     if (previewMissing(result)) return false;
     throw wranglerError(result, 'looking for the preview');
@@ -295,7 +302,8 @@ export class RelayDeployer {
     tunnel: string,
     secret: string,
   ): Promise<PreviewInfo> {
-    const { fs, layout, wrangler } = this.deps;
+    const { fs, layout } = this.deps;
+    const { wrangler } = this;
     // The secret goes to wrangler in a private file, never through a shell pipe (which stored a wrong value).
     const secretsFile = joinPath(layout.platform, dir, `secrets-${this.randomHex(6)}.json`);
     await fs.writeTextPrivate(secretsFile, JSON.stringify({ SECRET: secret }));

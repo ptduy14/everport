@@ -1,6 +1,6 @@
 // What wrangler says, turned into data. Formats come from real runs (wrangler 4.166.0), kept as fixtures.
 import { EverportError } from '../errors.js';
-import type { CliResult } from '../ports.js';
+import type { CliResult, WranglerRunner } from '../ports.js';
 
 /**
  * The wrangler that every measurement was made with. `wrangler preview` is a recent feature that has had flags the docs
@@ -43,9 +43,32 @@ export interface PreviewInfo {
 const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, '');
 
 export function isAuthFailure(result: CliResult): boolean {
-  return /non-interactive environment|CLOUDFLARE_API_TOKEN|not (logged in|authenticated)|You are not authenticated/i.test(
+  return /non-interactive environment|CLOUDFLARE_API_TOKEN|not (logged in|authenticated)|You are not authenticated|No API token found/i.test(
     stripAnsi(`${result.stderr}\n${result.stdout}`),
   );
+}
+
+/**
+ * Wrangler's login token lasts about an hour. When two runs refresh it at once, Cloudflare accepts the refresh token
+ * only once: the loser says "No API token found" although the winner just saved a new token.
+ */
+export const lostTokenRefresh = (result: CliResult): boolean =>
+  /No API token found/i.test(stripAnsi(`${result.stderr}\n${result.stdout}`));
+
+/** Runs a command again, once, when it lost a token refresh to another run. */
+export function retryLostTokenRefresh(
+  runner: WranglerRunner,
+  sleep: (ms: number) => Promise<void>,
+  delayMs = 1500,
+): WranglerRunner {
+  return {
+    run: async (args, options = {}) => {
+      const result = await runner.run(args, options);
+      if (options.interactive || result.code === 0 || !lostTokenRefresh(result)) return result;
+      await sleep(delayMs);
+      return runner.run(args, options);
+    },
+  };
 }
 
 export const previewMissing = (result: CliResult): boolean => /was not found/i.test(stripAnsi(result.stderr));
@@ -141,6 +164,7 @@ export function parseWorkerState(result: CliResult): WorkerState {
 
 /** Reads `wrangler whoami --json`: `{"loggedIn":false}` with exit 1 when logged out. */
 export function parseLoggedIn(result: CliResult): boolean {
+  if (lostTokenRefresh(result)) return false; // still no token after the retry: the login is really gone
   try {
     const loggedIn = (JSON.parse(result.stdout) as { loggedIn?: unknown }).loggedIn;
     if (typeof loggedIn === 'boolean') return loggedIn;

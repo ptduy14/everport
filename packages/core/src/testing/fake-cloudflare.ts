@@ -74,7 +74,7 @@ export class FakeCloudflare {
    * Makes wrangler calls that start with `prefix` fail with `text`. `skip` lets that many matching calls through first.
    * It stays in force until the test clears it.
    */
-  failCommand: { prefix: string[]; text: string; skip?: number } | undefined;
+  failCommand: { prefix: string[]; text: string; skip?: number; times?: number } | undefined;
   calls: WranglerCall[] = [];
   handshakes: string[] = [];
 
@@ -116,7 +116,10 @@ export class FakeCloudflare {
       const rule = this.failCommand;
       if (rule && rule.prefix.every((word, i) => args[i] === word)) {
         if (rule.skip && rule.skip > 0) rule.skip--;
-        else return fail(`X [ERROR] ${rule.text}\n`);
+        else {
+          if (rule.times !== undefined && --rule.times <= 0) this.failCommand = undefined;
+          return fail(`X [ERROR] ${rule.text}\n`);
+        }
       }
       return await this.dispatch(args, options);
     } finally {

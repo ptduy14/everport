@@ -53,6 +53,31 @@ describe('login', () => {
     expect(asked()).toBe(3);
   });
 
+  it('shares one wrangler run between callers at the same moment, so they do not race to refresh the token', async () => {
+    const { cloud, deployer } = setup();
+    expect(await Promise.all([deployer.isLoggedIn(), deployer.isLoggedIn({ fresh: true })])).toEqual([true, true]);
+    expect(cloud.calls.filter((c) => c.args[0] === 'whoami')).toHaveLength(1);
+  });
+
+  it('asks again once when another run won the token refresh, and says logged out when the token is still gone', async () => {
+    const { cloud, deployer } = setup();
+    cloud.failCommand = { prefix: ['whoami'], text: 'No API token found.', times: 1 };
+    expect(await deployer.isLoggedIn()).toBe(true);
+    expect(cloud.calls.filter((c) => c.args[0] === 'whoami')).toHaveLength(2);
+
+    cloud.failCommand = { prefix: ['whoami'], text: 'No API token found.' };
+    expect(await deployer.isLoggedIn({ fresh: true })).toBe(false);
+  });
+
+  it('retries any command that lost the token refresh, and calls a lasting loss NOT_LOGGED_IN', async () => {
+    const { cloud, newTunnel } = setup();
+    cloud.failCommand = { prefix: ['versions', 'list'], text: 'No API token found.', times: 1 };
+    await expect(newTunnel('fe')).resolves.toMatchObject({ name: 'fe' });
+
+    cloud.failCommand = { prefix: ['versions', 'list'], text: 'No API token found.' };
+    await expect(newTunnel('be')).rejects.toMatchObject({ code: 'NOT_LOGGED_IN' });
+  });
+
   it('runs `wrangler login` interactively, and checks it worked', async () => {
     const { cloud, deployer } = setup();
     cloud.loggedIn = false;
