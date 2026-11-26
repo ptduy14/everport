@@ -6,6 +6,7 @@ import { FakeFs } from './testing/fake-fs.js';
 const LOCK = '/d/everport.lock';
 const NOW = 1_000_000_000;
 const now = () => NOW;
+const noWait = { ms: 0, pollMs: 0, sleep: async () => {} };
 
 const procs = (alive: number[], bootTime?: number): ProcessTable => ({
   isAlive: (pid) => alive.includes(pid),
@@ -25,8 +26,33 @@ describe('FileLock', () => {
 
   it('refuses while the owner is alive', async () => {
     const fs = new FakeFs().seed(LOCK, JSON.stringify({ pid: 200 }));
-    await expect(new FileLock(fs, procs([200]), LOCK, 100, now).acquire()).rejects.toMatchObject({ code: 'LOCKED' });
+    await expect(new FileLock(fs, procs([200]), LOCK, 100, now, noWait).acquire()).rejects.toMatchObject({
+      code: 'LOCKED',
+    });
     expect(fs.text(LOCK)).toBe(JSON.stringify({ pid: 200 }));
+  });
+
+  it('waits for a live owner to finish, up to its limit, instead of failing at once', async () => {
+    const fs = new FakeFs().seed(LOCK, JSON.stringify({ pid: 200 }));
+    let clock = NOW;
+    let waits = 0;
+    const wait = {
+      ms: 60_000,
+      pollMs: 250,
+      sleep: async (ms: number) => {
+        clock += ms;
+        if (++waits === 3) await fs.remove(LOCK); // the other process is done
+      },
+    };
+    await new FileLock(fs, procs([200]), LOCK, 100, () => clock, wait).acquire();
+    expect(JSON.parse(fs.text(LOCK)!)).toMatchObject({ pid: 100 });
+    expect(waits).toBe(3);
+
+    const busy = new FakeFs().seed(LOCK, JSON.stringify({ pid: 200 }));
+    const forever = { ...wait, sleep: async (ms: number) => void (clock += ms) };
+    await expect(new FileLock(busy, procs([200]), LOCK, 100, () => clock, forever).acquire()).rejects.toMatchObject({
+      code: 'LOCKED',
+    });
   });
 
   it('takes over a lock whose owner is dead', async () => {
@@ -44,9 +70,11 @@ describe('FileLock', () => {
 
   it('respects a lock taken after the last restart', async () => {
     const fs = new FakeFs().seed(LOCK, JSON.stringify({ pid: 200, startedAt: NOW - 1000 }));
-    await expect(new FileLock(fs, procs([200], NOW - 600_000), LOCK, 100, now).acquire()).rejects.toMatchObject({
-      code: 'LOCKED',
-    });
+    await expect(new FileLock(fs, procs([200], NOW - 600_000), LOCK, 100, now, noWait).acquire()).rejects.toMatchObject(
+      {
+        code: 'LOCKED',
+      },
+    );
   });
 
   it('takes over a garbage lock file', async () => {
@@ -57,7 +85,7 @@ describe('FileLock', () => {
 
   it('a second raw acquire in the same process is refused', async () => {
     const fs = new FakeFs();
-    const lock = new FileLock(fs, procs([100]), LOCK, 100, now);
+    const lock = new FileLock(fs, procs([100]), LOCK, 100, now, noWait);
     await lock.acquire();
     await expect(lock.acquire()).rejects.toMatchObject({ code: 'LOCKED' });
   });
