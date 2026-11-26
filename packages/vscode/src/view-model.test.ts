@@ -154,10 +154,8 @@ describe('viewMessage', () => {
       '2 tunnels need attention: api, web',
     );
   });
-  it('says when every enabled tunnel is offline', () => {
-    expect(viewMessage([mk({ state: 'down' }), mk({ id: 'b', state: 'stopped', enabled: false })])).toContain(
-      'Tunnels are offline',
-    );
+  it('says nothing when the tunnels are only offline: each row already says so', () => {
+    expect(viewMessage([mk({ state: 'down' }), mk({ id: 'b', state: 'stopped', enabled: false })])).toBeUndefined();
   });
 });
 

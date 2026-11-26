@@ -146,18 +146,12 @@ export function toItem(
   }
 }
 
-/** One line above the list: what needs attention, or that everything is offline. Undefined when all is well. */
+/** One line above the list: what needs attention. Undefined when all is well (offline rows speak for themselves). */
 export function viewMessage(ts: TunnelStatus[]): string | undefined {
   const problems = ts.filter(needsAttention);
-  if (problems.length > 0) {
-    const n = problems.length;
-    return `${n} tunnel${n > 1 ? 's need' : ' needs'} attention: ${problems.map((t) => t.label).join(', ')}`;
-  }
-  const enabled = ts.filter((t) => t.enabled);
-  if (enabled.length > 0 && enabled.every((t) => t.state === 'down')) {
-    return 'Tunnels are offline. Press Start All to bring them back at the same URLs.';
-  }
-  return undefined;
+  if (problems.length === 0) return undefined;
+  const n = problems.length;
+  return `${n} tunnel${n > 1 ? 's need' : ' needs'} attention: ${problems.map((t) => t.label).join(', ')}`;
 }
 
 /** What the extension knows beyond the tunnels, for the status bar. */
