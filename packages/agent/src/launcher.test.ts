@@ -159,6 +159,14 @@ describe('stopAgent', () => {
     expect(await fs.exists(layout.agentStateFile)).toBe(false);
   });
 
+  it('logs that it killed the agent', async () => {
+    const { deps, fs, layout, processTable } = await setup();
+    await writeAgentState(fs, layout.agentStateFile, { pid: 4247, port: 1, token: 't', startedAt: 1 });
+    processTable.alive.add(4247);
+    await stopAgent(deps, { timeoutMs: 100, pollMs: 20 });
+    expect(await fs.readText(layout.agentLogFile)).toContain('agent (pid 4247) did not stop when asked: killed it');
+  });
+
   it('never kills by a pid recorded before a restart', async () => {
     const { deps, fs, layout, processTable } = await setup();
     const boot = Date.now() - 10 * 60_000;

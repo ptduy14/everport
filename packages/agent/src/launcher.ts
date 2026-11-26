@@ -2,6 +2,7 @@
 import {
   EverportError,
   FileLock,
+  FileLogger,
   startedBeforeBoot,
   type FileSystem,
   type Layout,
@@ -31,6 +32,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /** agent.json describes no running agent: its process is gone, or it was written before the last restart. */
 const isStale = (state: { pid: number; startedAt: number }, processTable: ProcessTable): boolean =>
   !processTable.isAlive(state.pid) || startedBeforeBoot(state.startedAt, processTable);
+
+/** Writes to agent.log what another process did to the agent, so the log explains an agent that is gone. */
+async function noteInAgentLog(fs: FileSystem, layout: Layout, message: string): Promise<void> {
+  const log = new FileLogger(fs, layout.agentLogFile);
+  log.warn(message);
+  await log.flush();
+}
 
 /**
  * The running agent, or null when none runs. A leftover agent.json whose process is gone is cleaned up.
@@ -152,7 +160,10 @@ export async function stopAgent(
   while (processTable.isAlive(state.pid) && Date.now() < deadline) await sleep(options.pollMs ?? 50);
 
   const outcome: StopOutcome = processTable.isAlive(state.pid) ? 'killed' : 'stopped';
-  if (outcome === 'killed') await processTable.killTree(state.pid);
+  if (outcome === 'killed') {
+    await processTable.killTree(state.pid);
+    await noteInAgentLog(fs, layout, `agent (pid ${state.pid}) did not stop when asked: killed it`);
+  }
   await removeAgentState(fs, layout.agentStateFile, state.pid);
   return outcome;
 }
