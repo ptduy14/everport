@@ -12,6 +12,13 @@ export class InvalidTargetError extends Error {
 export function normalizeTarget(input: string): string {
   const raw = input.trim();
   if (raw === '') throw new InvalidTargetError(input, 'empty');
+  if (/^\d+$/.test(raw) && !isValidPort(Number(raw))) {
+    throw new InvalidTargetError(input, 'port must be between 1 and 65535');
+  }
+  // A bare word ("abc") is most likely a typo, not a host: ask for a port or a full URL.
+  if (/^[a-z0-9-]+$/i.test(raw) && !/^\d+$/.test(raw) && raw.toLowerCase() !== 'localhost') {
+    throw new InvalidTargetError(input, 'not a port or an address; use 3000, localhost:3000 or http://host:3000');
+  }
 
   const withScheme = /^\d+$/.test(raw) ? `http://127.0.0.1:${raw}` : /^[a-z]+:\/\//i.test(raw) ? raw : `http://${raw}`;
 
@@ -26,9 +33,6 @@ export function normalizeTarget(input: string): string {
     throw new InvalidTargetError(input, 'only http and https are supported');
   }
   if (url.port !== '' && !isValidPort(Number(url.port))) {
-    throw new InvalidTargetError(input, 'port must be between 1 and 65535');
-  }
-  if (/^\d+$/.test(raw) && !isValidPort(Number(raw))) {
     throw new InvalidTargetError(input, 'port must be between 1 and 65535');
   }
 

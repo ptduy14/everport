@@ -14,8 +14,22 @@ describe('normalizeTarget', () => {
     expect(normalizeTarget(input)).toBe(expected);
   });
 
-  it.each(['', '   ', '0', '70000', 'localhost:99999', 'ftp://localhost:21', 'http://'])('rejects %j', (input) => {
-    expect(() => normalizeTarget(input)).toThrow(InvalidTargetError);
+  it.each(['', '   ', '0', '70000', 'localhost:99999', 'ftp://localhost:21', 'http://', 'abc'])(
+    'rejects %j',
+    (input) => {
+      expect(() => normalizeTarget(input)).toThrow(InvalidTargetError);
+    },
+  );
+
+  it('says what is wrong with a port out of range and with a bare word', () => {
+    expect(() => normalizeTarget('99999')).toThrow('port must be between 1 and 65535');
+    expect(() => normalizeTarget('abc')).toThrow('not a port or an address');
+  });
+
+  it('still takes a host name with a port, localhost, and any full URL', () => {
+    expect(normalizeTarget('api:8080')).toBe('http://api:8080');
+    expect(normalizeTarget('localhost')).toBe('http://localhost');
+    expect(normalizeTarget('http://abc')).toBe('http://abc');
   });
 });
 
