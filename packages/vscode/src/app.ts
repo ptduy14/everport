@@ -297,15 +297,16 @@ export class App {
   }
 
   /**
-   * Whether to offer "Log in" in the empty view. Asking Cloudflare can take seconds (the first call may even download
-   * wrangler), so it never blocks the view, and it is only needed while there are no tunnels.
+   * Whether to offer "Log in". Asking Cloudflare can take seconds (the first call may even download wrangler), so it
+   * never blocks the view. With tunnels it is asked once, in the background, so a later Add finds the answer ready.
    */
   private async checkLogin(ep: Everport): Promise<void> {
-    if (this.statuses.length > 0 || this.loginChecking) return;
+    const hasTunnels = this.statuses.length > 0;
+    if (this.loginChecking || (hasTunnels && (this.loginKnown || this.loginError))) return;
     this.loginChecking = true;
     try {
       const ask = () => ep.isLoggedIn();
-      this.setLoggedIn(this.loginKnown ? await ask() : await this.viewProgress(ask));
+      this.setLoggedIn(this.loginKnown || hasTunnels ? await ask() : await this.viewProgress(ask));
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       if (message !== this.lastLoginError) {
