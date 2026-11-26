@@ -214,6 +214,13 @@ describe('up and down', () => {
     expect(s.errText()).toContain('pick another label');
   });
 
+  it('up --all asks to turn on the stopped tunnels too; plain up does not', async () => {
+    const s = setup();
+    await s.go('up');
+    await s.go('up', '--all');
+    expect(s.manager.up.mock.calls).toEqual([[{ all: false }], [{ all: true }]]);
+  });
+
   it('up --json prints only JSON on stdout', async () => {
     const s = setup();
     await s.go('up', '--json');

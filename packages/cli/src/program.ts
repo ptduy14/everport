@@ -110,10 +110,11 @@ export async function run(argv: string[], ctx: CliContext): Promise<number> {
   program
     .command('up')
     .description('Start the agent and bring every enabled tunnel up (brings back a lost preview at the same address)')
+    .option('--all', 'also turn on the tunnels you stopped')
     .option('--json', 'print the result as JSON')
     .action(
-      task(async (opts: { json?: boolean }) => {
-        const tunnels = await (await manager()).up();
+      task(async (opts: { all?: boolean; json?: boolean }) => {
+        const tunnels = await (await manager()).up({ all: opts.all === true });
         if (opts.json) ctx.out(JSON.stringify(tunnels, null, 2));
         else printTunnels(tunnels);
         return tunnels.some((t) => t.state === 'failed') ? EXIT_ERROR : 0;

@@ -4,16 +4,16 @@ Details for people who already use Everport. To get started, see the [README](..
 
 ## Commands
 
-| Command                               | What it does                                                                                   |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `login`                               | Logs in to Cloudflare in your browser (runs `wrangler login`).                                 |
-| `add <target> [-l, --label] [--copy]` | Adds a tunnel to a local service. The first one also creates the relay.                        |
-| `up [--json]` / `down`                | Starts or stops the background agent and every enabled tunnel. `up` restores a lost preview.   |
-| `ls` (`status`) `[--json] [--health]` | Lists tunnels. `--health` asks each public address who answers.                                |
-| `start` / `stop <tunnel>`             | Turns one tunnel on or off. `<tunnel>` is its id or label.                                     |
-| `rm` (`remove`) `<tunnel> [--local]`  | Removes the tunnel and its preview. The address stops working. `--local`: this computer only.  |
-| `copy <tunnel>`                       | Copies the URL to the clipboard.                                                               |
-| `doctor [--json]`                     | Checks Node, wrangler, login, the data folder and the relay, and says how to fix each failure. |
+| Command                               | What it does                                                                                                                                                       |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `login`                               | Logs in to Cloudflare in your browser (runs `wrangler login`).                                                                                                     |
+| `add <target> [-l, --label] [--copy]` | Adds a tunnel to a local service. The first one also creates the relay.                                                                                            |
+| `up [--all] [--json]` / `down`        | Starts or stops the background agent and every enabled tunnel. `up` restores a lost preview. `--all` also turns on stopped tunnels, like **Start All** in VS Code. |
+| `ls` (`status`) `[--json] [--health]` | Lists tunnels. `--health` asks each public address who answers.                                                                                                    |
+| `start` / `stop <tunnel>`             | Turns one tunnel on or off. `<tunnel>` is its id or label.                                                                                                         |
+| `rm` (`remove`) `<tunnel> [--local]`  | Removes the tunnel and its preview. The address stops working. `--local`: this computer only.                                                                      |
+| `copy <tunnel>`                       | Copies the URL to the clipboard.                                                                                                                                   |
+| `doctor [--json]`                     | Checks Node, wrangler, login, the data folder and the relay, and says how to fix each failure.                                                                     |
 
 `<target>` is a port (`3000`), `host:port`, or a full URL. A bare port means `127.0.0.1`.
 

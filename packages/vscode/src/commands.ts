@@ -110,7 +110,7 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
 
   reg('upAll', () =>
     app.run('Start all', async () => {
-      await app.progress('Starting tunnels…', (ep) => ep.up());
+      await app.progress('Starting tunnels…', (ep) => ep.up({ all: true }));
       await app.refresh();
       await app.reportStartAll();
     }),

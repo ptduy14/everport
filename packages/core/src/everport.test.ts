@@ -233,6 +233,18 @@ describe('up', () => {
     expect([...agent.tunnels.keys()]).toEqual(['fe']);
   });
 
+  it('with all, also turns on and serves the tunnels that were stopped', async () => {
+    const { everport, agent } = await withTunnels('fe', 'be');
+    await everport.stop('be');
+
+    const statuses = await everport.up({ all: true });
+    expect(statuses.map((s) => [s.label, s.state, s.enabled])).toEqual([
+      ['fe', 'active', true],
+      ['be', 'active', true],
+    ]);
+    expect([...agent.tunnels.keys()].sort()).toEqual(['be', 'fe']);
+  });
+
   it('brings back a preview that went missing, at the same address, and then serves it', async () => {
     const { everport, cloud, agent } = await withTunnels('fe');
     const [before] = await everport.status();

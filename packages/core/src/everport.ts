@@ -218,10 +218,15 @@ export class Everport {
   /**
    * Starts everything the configuration asks for: checks each tunnel's preview, brings back one that is gone (same
    * address), starts the agent and gives it the tunnels. A tunnel that cannot be served comes back `failed` with the
-   * reason; the others still run.
+   * reason; the others still run. `all` turns every tunnel on first, stopped ones included.
    */
-  up(): Promise<TunnelStatus[]> {
+  up(options: { all?: boolean } = {}): Promise<TunnelStatus[]> {
     return this.locked(async () => {
+      if (options.all) {
+        await this.store.mutate((c) => {
+          for (const t of c.tunnels) t.enabled = true;
+        });
+      }
       const config = await this.store.load();
       const enabled = config.tunnels.filter((t) => t.enabled);
       if (!config.relay || enabled.length === 0) return this.toStatuses(config, await this.d.agent.status());
