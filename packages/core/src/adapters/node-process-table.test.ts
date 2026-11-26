@@ -19,4 +19,9 @@ describe('windowsAgentCommandLine', () => {
     expect(line).toContain(bs('"C:|My Tools|node.exe" "my agent.js" run'));
     expect(line).toContain(bs('>> "C:|My Logs|agent.log"'));
   });
+
+  it('quotes arguments with characters cmd treats specially', () => {
+    const line = windowsAgentCommandLine('node.exe', [bs('C:|Users|Tom&Jo|agent.js'), '--data-dir', 'a(1)'], 'log');
+    expect(line).toContain(bs('"C:|Users|Tom&Jo|agent.js" --data-dir "a(1)"'));
+  });
 });

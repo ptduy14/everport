@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveNpx, withNodeOnPath } from './node-wrangler.js';
+import { npxArgs, resolveNpx, withNodeOnPath } from './node-wrangler.js';
 
 describe('resolveNpx', () => {
   it('runs npx-cli.js with node itself on Windows, so no shell is needed (npx.cmd cannot be spawned directly)', () => {
@@ -54,5 +54,32 @@ describe('withNodeOnPath', () => {
   it('leaves the environment alone for a bare "node"', () => {
     const env = { PATH: '/usr/bin' };
     expect(withNodeOnPath(env, 'node', 'linux')).toBe(env);
+  });
+});
+
+describe('npxArgs', () => {
+  const secrets = 'C:\\Users\\John Smith\\AppData\\Local\\everport\\relay\\secrets-1.json';
+
+  it('passes the arguments as they are when no shell runs them', () => {
+    const npx = { command: 'node.exe', prefix: ['npx-cli.js'], shell: false };
+    expect(npxArgs(npx, '4.166.0', ['preview', '--secrets-file', secrets])).toEqual([
+      'npx-cli.js',
+      '-y',
+      'wrangler@4.166.0',
+      'preview',
+      '--secrets-file',
+      secrets,
+    ]);
+  });
+
+  it('quotes a path with a space for cmd in the npx.cmd fallback, so it stays one argument', () => {
+    const npx = { command: 'npx.cmd', prefix: [], shell: true };
+    expect(npxArgs(npx, '4.166.0', ['preview', '--secrets-file', secrets])).toEqual([
+      '-y',
+      'wrangler@4.166.0',
+      'preview',
+      '--secrets-file',
+      `"${secrets}"`,
+    ]);
   });
 });

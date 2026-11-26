@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { posix, win32 } from 'node:path';
 import type { CliResult, WranglerRunOptions, WranglerRunner } from '../ports.js';
 import { WRANGLER_VERSION } from '../relay/wrangler.js';
-import { NodeProcessTable } from './node-process-table.js';
+import { NodeProcessTable, quoteForCmd } from './node-process-table.js';
 
 export interface NpxCommand {
   command: string;
@@ -31,6 +31,12 @@ export function resolveNpx(
   return platform === 'win32'
     ? { command: 'npx.cmd', prefix: [], shell: true }
     : { command: 'npx', prefix: [], shell: false };
+}
+
+/** The full argument list for npx. Through a shell (the `npx.cmd` fallback) each one is quoted for cmd. */
+export function npxArgs(npx: NpxCommand, version: string, args: string[]): string[] {
+  const all = [...npx.prefix, '-y', `wrangler@${version}`, ...args];
+  return npx.shell ? all.map(quoteForCmd) : all;
 }
 
 /**
@@ -66,7 +72,7 @@ export class NodeWranglerRunner implements WranglerRunner {
 
     if (options.signal?.aborted) return Promise.resolve({ code: 130, stdout: '', stderr: 'cancelled' });
     return new Promise((resolve) => {
-      const child = spawn(npx.command, [...npx.prefix, '-y', `wrangler@${this.version}`, ...args], {
+      const child = spawn(npx.command, npxArgs(npx, this.version, args), {
         cwd: options.cwd,
         env,
         shell: npx.shell,

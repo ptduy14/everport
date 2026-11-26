@@ -87,9 +87,16 @@ export class NodeProcessTable implements ProcessTable {
   }
 }
 
+/**
+ * One argument for a `cmd.exe` line, quoted when it holds a space or a character cmd treats specially (`&`, `|`, `<`,
+ * `>`, `^`, parentheses), as in a user folder named `Tom & Jo`. A `%` still expands, as it always does in cmd.
+ */
+export function quoteForCmd(arg: string): string {
+  return arg === '' || /[\s&|<>^()"]/.test(arg) ? `"${arg.replaceAll('"', '""')}"` : arg;
+}
+
 /** The argument string for `cmd.exe`: runs `"cmd" args` with stdout and stderr appended to the log. */
 export function windowsAgentCommandLine(cmd: string, args: string[], logFile: string): string {
-  const quote = (a: string, always: boolean) => (always || /\s/.test(a) ? `"${a}"` : a);
-  const quoted = [quote(cmd, true), ...args.map((a) => quote(a, false))].join(' ');
+  const quoted = [`"${cmd}"`, ...args.map(quoteForCmd)].join(' ');
   return `/c "${quoted} >> "${logFile}" 2>&1"`;
 }
