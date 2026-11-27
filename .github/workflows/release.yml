@@ -1,0 +1,124 @@
+name: release
+
+# Publishes a new version when main carries one that has no tag yet: the CLI to npm, the extension to the VS Code
+# Marketplace and Open VSX, then the GitHub Release. A pull request runs the same checks and a dry run that
+# publishes nothing. npm and the Marketplace use trusted publishing (OIDC); Open VSX uses the OVSX_PAT secret of
+# the `release` environment until the namespace has an owner.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      release: ${{ steps.check.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: check
+        run: node scripts/check-release.mjs
+
+  verify:
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run lint
+      - name: The extension inside a real VS Code
+        if: runner.os == 'Windows'
+        run: npm run test:vscode -w everport-vscode
+
+  dry-run:
+    needs: [check, verify]
+    if: github.event_name == 'pull_request' && needs.check.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: npm (dry run)
+        run: npm publish -w everport --dry-run
+      - name: Package the extension
+        run: |
+          npm run package -w everport-vscode
+          test -f "packages/vscode/everport-vscode-$VERSION.vsix"
+      - name: Release notes
+        run: RELEASE_NOTES="$RUNNER_TEMP/notes.md" node scripts/check-release.mjs && cat "$RUNNER_TEMP/notes.md"
+
+  publish:
+    needs: [check, verify]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.check.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write # the tag and the GitHub Release
+      id-token: write # trusted publishing to npm and the Marketplace
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      VSIX: packages/vscode/everport-vscode-${{ needs.check.outputs.version }}.vsix
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # No registry-url: it writes an .npmrc that asks for NODE_AUTH_TOKEN instead of trusted publishing.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: Package the extension once, for both stores and the GitHub Release
+        run: npm run package -w everport-vscode && test -f "$VSIX"
+      - name: npm
+        run: |
+          if [ -n "$(npm view "everport@$VERSION" version 2>/dev/null)" ]; then
+            echo "everport@$VERSION is already on npm"
+          else
+            npm publish -w everport
+          fi
+      - name: VS Code Marketplace
+        run: npx --no-install vsce publish --oidc --packagePath "$VSIX" --skip-duplicate
+      - name: Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: npx --yes ovsx@1.4.0 publish "$VSIX" --skip-duplicate
+      - name: Tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_NOTES="$RUNNER_TEMP/notes.md" node scripts/check-release.mjs
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists"
+          else
+            gh release create "v$VERSION" "$VSIX" --target "$GITHUB_SHA" --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
