@@ -30,6 +30,7 @@ import {
   healthMessage,
   labelError,
   LOGGED_IN_TEXT,
+  PREPARING_TITLE,
   LOGIN_WAIT_TEXT,
   LOGIN_WAIT_TITLE,
   REMOVE_BUTTON,
@@ -60,11 +61,20 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
   reg('add', () =>
     app.run('Add tunnel', async () => {
       const ep = await app.ep();
-      const loggedIn = await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: 'Checking your Cloudflare login…' },
-        () => ep.isLoggedIn(),
-      );
-      if (!loggedIn) throw new EverportError('NOT_LOGGED_IN', 'You are not logged in to Cloudflare', '');
+      // Asked while the person picks a port and a name. The first time, wrangler is downloaded during this check.
+      let preparing = false;
+      const off = ep.on('event', (e) => (preparing ||= e.type === 'wrangler:preparing'));
+      let settled = false;
+      const login = ep
+        .isLoggedIn()
+        .then(
+          (loggedIn) => ({ loggedIn }),
+          (error: unknown) => ({ error }),
+        )
+        .finally(() => {
+          settled = true;
+          off();
+        });
 
       const picked = await pickTarget(app);
       if (!picked) return app.log('info', '  Cancelled');
@@ -83,6 +93,17 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
         },
       });
       if (typed === undefined) return app.log('info', '  Cancelled'); // Esc cancels the whole add
+      const checked = settled
+        ? await login
+        : await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: preparing ? PREPARING_TITLE : 'Checking your Cloudflare login…',
+            },
+            () => login,
+          );
+      if ('error' in checked) throw checked.error;
+      if (!checked.loggedIn) throw new EverportError('NOT_LOGGED_IN', 'You are not logged in to Cloudflare', '');
       const label = typed.trim() || fallback;
       const first = app.statuses.length === 0;
       app.log('info', `  ${label} → ${normalized}`);

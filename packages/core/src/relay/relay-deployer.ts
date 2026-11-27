@@ -33,6 +33,8 @@ export interface RelayDeployerDeps {
   /** Tries to see a new preview answer: Cloudflare takes up to about a second to spread it. */
   verifyAttempts?: number;
   verifyDelayMs?: number;
+  /** Tries of the agent handshake on a new preview. Default 15, about 10 s. */
+  handshakeAttempts?: number;
 }
 
 export interface CreatedTunnel {
@@ -52,6 +54,8 @@ export interface NewTunnels {
   /** Names already used by other tunnels in the configuration. */
   taken: string[];
   labels: string[];
+  /** Awaited with the first Cloudflare checks, before anything is deployed (the login check, run alongside). */
+  ready?: Promise<unknown>;
 }
 
 export type TunnelHealth = 'ok' | 'not-found' | 'mismatch' | 'unreachable';
@@ -121,7 +125,7 @@ export class RelayDeployer {
    * Worker; three at once fail with error 10040), the rest in parallel. All or nothing: if one fails, the ones
    * that were made are removed again.
    */
-  async createTunnels({ workerName, secret, taken, labels }: NewTunnels): Promise<CreatedTunnel[]> {
+  async createTunnels({ workerName, secret, taken, labels, ready }: NewTunnels): Promise<CreatedTunnel[]> {
     const planned = labels.map((label) => ({ label, name: normalizeTunnelName(label, workerName, this.randomHex) }));
     const seen = new Set(taken);
     for (const { label, name } of planned) {
@@ -135,8 +139,9 @@ export class RelayDeployer {
       seen.add(name);
     }
 
-    // Asked together: each wrangler call takes seconds.
-    const [state, existing] = await Promise.all([
+    // Asked together: each wrangler call takes seconds. `ready` fails first: "not logged in" explains the others.
+    const [readyResult, stateResult, existingResult] = await Promise.allSettled([
+      ready,
       this.probeWorker(workerName),
       Promise.all(
         planned.map((p) =>
@@ -147,6 +152,11 @@ export class RelayDeployer {
         ),
       ),
     ]);
+    if (readyResult.status === 'rejected') throw readyResult.reason;
+    if (stateResult.status === 'rejected') throw stateResult.reason;
+    if (existingResult.status === 'rejected') throw existingResult.reason;
+    const state = stateResult.value;
+    const existing = existingResult.value;
     if (state === 'regular') {
       throw new EverportError(
         'WORKER_NAME_TAKEN',
@@ -362,7 +372,9 @@ export class RelayDeployer {
 
     const token = await connectToken(secret, tunnel);
     let status = 0;
-    for (let i = 0; i < attempts; i++) {
+    // A new preview can answer 500 "relay not configured" for several seconds before its secret is seen everywhere.
+    const handshakeAttempts = this.deps.handshakeAttempts ?? 15;
+    for (let i = 0; i < handshakeAttempts; i++) {
       status = await this.deps.probe.handshake(url, token);
       if (status === 101) return;
       if (status === 403) {
@@ -372,7 +384,7 @@ export class RelayDeployer {
           'Run "everport doctor".',
         );
       }
-      if (i < attempts - 1) await this.sleep(delay);
+      if (i < handshakeAttempts - 1) await this.sleep(delay);
     }
     throw new EverportError(
       'WRANGLER_FAILED',

@@ -32,5 +32,8 @@ export function normalizeTunnelName(
     .replace(/^-+|-+$/g, '')
     .slice(0, max)
     .replace(/-+$/g, '');
-  return name === '' ? `t-${randomHex(2)}`.slice(0, max) : name;
+  if (name === '') return `t-${randomHex(2)}`.slice(0, max);
+  // Cloudflare adds a random suffix to a preview named like a Worker of the account; doing it here saves a redeploy.
+  if (name === workerName) return `${name.slice(0, Math.max(1, max - 5)).replace(/-+$/g, '')}-${randomHex(2)}`;
+  return name;
 }

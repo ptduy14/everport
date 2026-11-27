@@ -11,6 +11,7 @@ import {
   healthMessage,
   labelError,
   progressText,
+  PREPARING_TITLE,
   removeDetail,
   removeQuestion,
   startedWaitingMessage,
@@ -97,10 +98,11 @@ describe('messages', () => {
   it('turns core events into short progress steps', () => {
     expect(progressText({ type: 'relay:setup', message: 'long core text' }, true)).toContain('First tunnel only');
     expect(progressText({ type: 'tunnel:creating', message: 'x' }, true)).toBe(
-      'Creating the public URL… (first tunnel: 10–20 s)',
+      'Creating the public URL… (first tunnel: about 10 s)',
     );
     expect(progressText({ type: 'tunnel:creating', message: 'x' }, false)).toBe('Creating the public URL…');
     expect(progressText({ type: 'agent:starting', message: 'x' }, false)).toBe('Connecting…');
+    expect(progressText({ type: 'wrangler:preparing', message: 'core text' }, false)).toBe(PREPARING_TITLE);
     expect(progressText({ type: 'agent:ready', message: 'x' }, false)).toBeUndefined();
     expect(progressText({ type: 'tunnel:ready', message: 'api is ready' }, false)).toBe('api is ready');
   });

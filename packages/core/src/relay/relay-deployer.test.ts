@@ -232,6 +232,12 @@ describe('createTunnel: checking the result', () => {
     await expect(newTunnel()).resolves.toMatchObject({ name: 'fe' });
   });
 
+  it('keeps trying the handshake for about 10 s: a new preview can refuse it while its secret spreads', async () => {
+    const { cloud, newTunnel } = setup();
+    cloud.notReadyHandshakes = 10;
+    await expect(newTunnel()).resolves.toMatchObject({ name: 'fe' });
+  });
+
   it('gives up, and removes the preview, when it never answers as the relay', async () => {
     const { cloud, newTunnel } = setup();
     cloud.notReadyVersionProbes = 99;

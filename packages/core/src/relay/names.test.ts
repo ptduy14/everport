@@ -35,6 +35,12 @@ describe('normalizeTunnelName', () => {
     expect(cut.endsWith('-')).toBe(false);
   });
 
+  it('adds a suffix to a name equal to the Worker name, as Cloudflare would, so the preview is not deployed twice', () => {
+    expect(normalizeTunnelName('everport', 'everport', fixed)).toBe('everport-abcd');
+    expect(normalizeTunnelName('Everport', 'everport', fixed)).toBe('everport-abcd');
+    expect(normalizeTunnelName('everport-2', 'everport', fixed)).toBe('everport-2');
+  });
+
   it('refuses a Worker name so long that no tunnel name fits', () => {
     expect(() => normalizeTunnelName('fe', 'w'.repeat(62), fixed)).toThrowError(
       expect.objectContaining({ code: 'INVALID_NAME' }),

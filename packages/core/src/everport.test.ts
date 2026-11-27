@@ -108,10 +108,8 @@ describe('add', () => {
     const heard: { type: string; message: string }[] = [];
     events.on((e) => heard.push(e));
     await everport.add({ target: '3000', label: 'fe' });
-    expect(heard.find((e) => e.type === 'relay:setup')?.message).toMatch(/first tunnel.*10 to 20 seconds.*minute/);
-    expect(heard.find((e) => e.type === 'tunnel:creating')?.message).toBe(
-      'Creating fe and the relay on Cloudflare (10 to 20 seconds, it varies)',
-    );
+    expect(heard.find((e) => e.type === 'relay:setup')?.message).toMatch(/first tunnel.*about 10 seconds.*minute/);
+    expect(heard.find((e) => e.type === 'tunnel:creating')?.message).toBe('Creating fe and the relay on Cloudflare');
 
     heard.length = 0;
     await everport.add({ target: '3301', label: 'be' });
@@ -160,11 +158,32 @@ describe('add', () => {
     expect(agent.calls).toEqual([]);
   });
 
-  it('saves nothing when Cloudflare fails', async () => {
-    const { everport, cloud, store } = setup();
+  it('saves nothing when Cloudflare fails, and stops the agent it started alongside for the first tunnel', async () => {
+    const { everport, cloud, store, agent } = setup();
     cloud.failCommand = { prefix: ['preview', '--name'], text: 'the Cloudflare API is down' };
     await expect(everport.add({ target: '3000' })).rejects.toMatchObject({ code: 'WRANGLER_FAILED' });
     expect((await store.load()).tunnels).toEqual([]);
+    expect(agent.calls).toEqual(['ensureRunning', 'stop']);
+  });
+
+  it('does not report a first connection error that the agent gets past within a moment', async () => {
+    const { everport, agent } = setup();
+    agent.stateOnAdd['fe'] = { name: 'fe', state: 'connecting', lastError: 'Unexpected server response: 500' };
+    const status = agent.status.bind(agent);
+    let asked = 0;
+    agent.status = async () => {
+      if (++asked === 4)
+        agent.tunnels.set('fe', { ...agent.tunnels.get('fe')!, state: 'connected', lastError: undefined });
+      return status();
+    };
+    await expect(everport.add({ target: '3000', label: 'fe' })).resolves.toMatchObject({ state: 'active' });
+  });
+
+  it('starts the agent while Cloudflare is asked, so the tunnel is served right after it is made', async () => {
+    const { everport, agent } = setup();
+    await everport.add({ target: '3000', label: 'fe' });
+    expect(agent.calls.slice(0, 2)).toEqual(['ensureRunning', 'ensureRunning']);
+    expect(agent.calls).toContain('addTunnel fe');
   });
 
   it('removes the new preview again when the configuration cannot be saved, so none is left that nothing knows about', async () => {

@@ -17,7 +17,7 @@ import type {
   WranglerRunner,
 } from './ports.js';
 import { defaultRandomHex } from './relay/names.js';
-import { RelayDeployer, type TunnelHealth } from './relay/relay-deployer.js';
+import { RelayDeployer, type CreatedTunnel, type TunnelHealth } from './relay/relay-deployer.js';
 import { loadOrCreateRelaySecret } from './relay/secret.js';
 import {
   MIN_NODE_LABEL,
@@ -88,15 +88,14 @@ export interface EverportDeps {
   sleep?: (ms: number) => Promise<void>;
   /** How long `add` and `up` wait for a tunnel to connect. Default 10 s. */
   connectTimeoutMs?: number;
+  /** How long a connection error is not taken as the answer yet, while the agent retries. Default 3 s. */
+  connectGraceMs?: number;
   pollMs?: number;
 }
 
-/**
- * Said before the first tunnel is made. Measured (one run each, from Vietnam to Cloudflare, Windows): about 17 to 24 s
- * with wrangler already downloaded (about 10 s in a later manual try), about 70 s when it must be downloaded first; on GitHub Actions runners 5 to 6 s.
- */
+/** Said before the first tunnel is made. Measured from Vietnam on Windows: 8 to 12 s, plus 45 to 70 s to download wrangler. */
 const FIRST_TUNNEL_NOTE =
-  'This is your first tunnel, so Everport also sets up the relay in your Cloudflare account. It can take 10 to 20 seconds (it varies), and a minute or more if wrangler has to be downloaded first.';
+  'This is your first tunnel, so Everport also sets up the relay in your Cloudflare account. It takes about 10 seconds, plus about a minute the first time on this computer, while wrangler is downloaded.';
 
 type TunnelError = NonNullable<TunnelStatus['error']>;
 
@@ -163,24 +162,42 @@ export class Everport {
       }
       const first = config.relay === null;
       if (first) this.d.events.emit('relay:setup', FIRST_TUNNEL_NOTE);
-      if (!(await this.d.deployer.isLoggedIn())) {
-        throw new EverportError('NOT_LOGGED_IN', 'You are not logged in to Cloudflare', 'Run "everport login".');
-      }
-
       const workerName = config.relay?.workerName ?? this.workerName;
       const secret = await loadOrCreateRelaySecret(this.d.fs, this.d.layout, this.randomHex);
       this.d.events.emit(
         'tunnel:creating',
-        first
-          ? `Creating ${label} and the relay on Cloudflare (10 to 20 seconds, it varies)`
-          : `Creating ${label} on Cloudflare`,
+        first ? `Creating ${label} and the relay on Cloudflare` : `Creating ${label} on Cloudflare`,
       );
-      const created = await this.d.deployer.createTunnel({
-        workerName,
-        secret,
-        taken: config.tunnels.map((t) => t.name),
-        label,
+
+      // The login check and the agent start each take a second or more: they run while Cloudflare is asked.
+      const login = this.d.deployer.isLoggedIn().then((loggedIn) => {
+        if (!loggedIn) {
+          throw new EverportError('NOT_LOGGED_IN', 'You are not logged in to Cloudflare', 'Run "everport login".');
+        }
       });
+      const agentWasRunning = (await this.d.agent.status()) !== null;
+      const agentStarted = login.then(
+        () =>
+          this.d.agent.ensureRunning().then(
+            () => !agentWasRunning,
+            () => false,
+          ),
+        () => false,
+      );
+      let created: CreatedTunnel;
+      try {
+        created = await this.d.deployer.createTunnel({
+          workerName,
+          secret,
+          taken: config.tunnels.map((t) => t.name),
+          label,
+          ready: login,
+        });
+      } catch (e) {
+        if ((await agentStarted) && config.tunnels.length === 0) await this.d.agent.stop().catch(() => {}); // started for nothing
+        throw e;
+      }
+      await agentStarted; // serve() below starts it again if this failed, and reports why
 
       const tunnel: Tunnel = {
         id: this.newId(config),
@@ -580,13 +597,15 @@ export class Everport {
     if (names.length === 0) return this.d.agent.status();
     const timeout = this.d.connectTimeoutMs ?? 10_000;
     const poll = this.d.pollMs ?? 200;
+    // A new preview can refuse the first connection while its secret spreads; the agent retries within a second.
+    const grace = this.d.connectGraceMs ?? 3_000;
     const waited = { ms: 0 };
     for (;;) {
       const info = await this.d.agent.status();
       if (!info) return null;
       const pending = names.filter((name) => {
         const t = info.tunnels.find((x) => x.name === name);
-        return !t || (t.state === 'connecting' && !t.lastError);
+        return !t || (t.state === 'connecting' && (!t.lastError || waited.ms < grace));
       });
       if (pending.length === 0 || waited.ms >= timeout) return info;
       await this.sleep(poll);

@@ -86,14 +86,17 @@ export const REMOVE_LOCAL_BUTTON = 'Remove from List Only';
 export const LOGIN_WAIT_TITLE = 'Waiting for you in the browser…';
 export const LOGIN_WAIT_TEXT = "Log in to Cloudflare, then click Allow. This closes by itself when you're done.";
 export const LOGGED_IN_TEXT = 'Logged in to Cloudflare. Add a tunnel to get your first public URL.';
+export const PREPARING_TITLE = "Downloading Cloudflare's tool (first time only, about a minute)…";
 
 /** Progress text for a core event, in VS Code words; undefined keeps the step shown before. */
 export function progressText(e: { type: string; message: string }, first: boolean): string | undefined {
   switch (e.type) {
     case 'relay:setup':
-      return "Setting up Everport in your Cloudflare account. First tunnel only: 10–20 s, longer if Cloudflare's tool is still downloading.";
+      return "Setting up Everport in your Cloudflare account. First tunnel only: about 10 s, plus about a minute if Cloudflare's tool is still downloading.";
     case 'tunnel:creating':
-      return first ? 'Creating the public URL… (first tunnel: 10–20 s)' : 'Creating the public URL…';
+      return first ? 'Creating the public URL… (first tunnel: about 10 s)' : 'Creating the public URL…';
+    case 'wrangler:preparing':
+      return PREPARING_TITLE;
     case 'agent:starting':
       return 'Connecting…';
     case 'agent:ready':
