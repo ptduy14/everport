@@ -63,11 +63,19 @@ export async function run(): Promise<void> {
     await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
     const port = (server.address() as AddressInfo).port;
     try {
-      const all = await scanPorts(new NodePortScanner(), { workspaceFolders: [] });
+      const scanner = new NodePortScanner();
+      const all = await scanPorts(scanner, { workspaceFolders: [] });
       const mine = all.find((c) => c.port === port);
       assert.ok(mine, `port ${port} not found among ${all.map((c) => c.port).join(',')}`);
-      assert.equal(mine.http, 200);
-      console.log(`     port ${port}: group=${mine.group} label=${mine.label}`);
+      console.log(`     port ${port}: group=${mine.group} label=${mine.label} (${mine.detail})`);
+      // A CI runner that runs as a Windows service makes VS Code a child of services.exe, so its ports are hidden and
+      // not probed, as a real service's would be. The probe itself must still work.
+      if (mine.group === 'hidden') {
+        assert.match(mine.detail, /windows service/, `hidden for another reason: ${mine.detail}`);
+        assert.equal(await scanner.probe('127.0.0.1', port), 200);
+      } else {
+        assert.equal(mine.http, 200, mine.detail);
+      }
     } finally {
       server.close();
     }
