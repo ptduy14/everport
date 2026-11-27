@@ -73,6 +73,15 @@ Tests that touch Cloudflare only ever use Worker names starting with `ep-smoke-`
 - Do not commit secrets, `tunnels.json`, `relay-secret` or build output (`dist/`).
 - Changes to `.github/workflows/` need a maintainer's review.
 
+## Releasing (maintainers)
+
+A release happens when `main` gets a version that has no tag yet. In the pull request that prepares it:
+
+1. Set the same new version in `packages/cli/package.json` and `packages/vscode/package.json`, and in the two matching entries of `package-lock.json`.
+2. Add a `## <version>` section to `packages/vscode/CHANGELOG.md`. Its text becomes the GitHub Release notes.
+
+`node scripts/check-release.mjs` checks both. On the pull request, the release workflow runs the checks and a dry run that publishes nothing. After the merge it waits for a maintainer to approve the `release` environment. It then publishes the CLI to npm and the extension to the VS Code Marketplace and Open VSX, tags `v<version>` and creates the GitHub Release with the `.vsix`. Each step skips a registry that already has the version, so a failed run can be started again. Do not tag or publish a version by hand. A published version can never be replaced: fix forward with a new version.
+
 ## License
 
 By contributing you agree that your contribution is released under the [MIT license](LICENSE).
