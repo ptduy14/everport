@@ -1,6 +1,6 @@
 {
   "name": "everport",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Stable public URLs for your local services, on a Cloudflare relay in your own account",
   "license": "MIT",
   "repository": {

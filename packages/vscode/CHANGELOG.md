@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1
+
+- Your local app now receives the tunnel's public host in `X-Forwarded-Host`, so redirects and absolute links can use the public URL.
+- Fixed: after a Windows shutdown with Fast Startup, every command could fail with "running but does not answer" until you deleted the agent file by hand. An agent that no longer answers on its control port is now recognised as gone, and Stop never touches an unrelated process.
+- The agent log says how the agent stopped.
+- Fixed: adding a tunnel failed when your user folder has a space (for example `C:\Users\John Smith`), or the agent did not start when a path has `&` or parentheses.
+- Adding a tunnel rejects a bare word as the target and says when a port is out of range.
+
 ## 1.0.0
 
 First public release.
