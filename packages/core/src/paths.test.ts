@@ -62,3 +62,10 @@ describe('joinPath', () => {
     expect(joinPath('linux', '/a/', '/b/', 'c')).toBe('/a/b/c');
   });
 });
+
+describe('wranglerStateFile', () => {
+  it('never has a name wrangler reads as its own config, since wrangler looks in parent folders too', () => {
+    const name = createLayout({ platform: 'linux', env: {}, home: '/h' }).wranglerStateFile.split('/').at(-1);
+    expect(name).not.toMatch(/^wrangler\.(json|jsonc|toml)$/);
+  });
+});

@@ -14,6 +14,7 @@ import {
   summarizeFailure,
   wranglerError,
   wranglerNeedsNewerNode,
+  workerdMissing,
 } from './wrangler.js';
 
 const fixture = (name: string) =>
@@ -139,6 +140,21 @@ describe('the Node.js that wrangler needs', () => {
     stderr:
       'Wrangler requires at least Node.js v22.12.0. You are using v20.19.4. Please update your version of Node.js.',
   };
+
+  it('recognises an install without the workerd binary and says how to get it again', () => {
+    const broken: CliResult = {
+      code: 1,
+      stdout: '',
+      stderr:
+        'Error: The package "@cloudflare/workerd-windows-64" could not be found, and is needed by workerd.\n    at generateBinPath',
+    };
+    expect(workerdMissing(broken)).toBe(true);
+    expect(workerdMissing({ code: 1, stdout: '', stderr: 'something else' })).toBe(false);
+    const error = wranglerError(broken, 'checking the login');
+    expect(error.code).toBe('WRANGLER_FAILED');
+    expect(error.message).toContain('without the workerd program');
+    expect(error.hint).toContain('everport doctor');
+  });
 
   it('recognises wrangler refusing to start on an old Node, and says what to do', () => {
     expect(wranglerNeedsNewerNode(tooOld)).toBe(true);

@@ -4,6 +4,7 @@ export type EverportEventType =
   | 'agent:stopping'
   | 'agent:stopped'
   | 'relay:setup'
+  | 'wrangler:preparing'
   | 'tunnel:creating'
   | 'tunnel:active'
   | 'tunnel:ready'

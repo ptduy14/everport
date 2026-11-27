@@ -30,7 +30,13 @@ export { classifyPorts, type PortSnapshot, type PortGroup, type PortCandidate } 
 export { scanPorts, candidateTarget, type ScanOptions } from './port-scan.js';
 export { NodePortScanner } from './adapters/node-port-scanner.js';
 export { withWaitTiming, sumWaitMs, WAIT_PREFIX } from './timing.js';
-export { NodeWranglerRunner, resolveNpx, type NpxCommand } from './adapters/node-wrangler.js';
+export {
+  NodeWranglerRunner,
+  resolveNpx,
+  PREPARING_MESSAGE,
+  type NpxCommand,
+  type NodeWranglerOptions,
+} from './adapters/node-wrangler.js';
 export { NodeRelayProbe } from './adapters/node-relay-probe.js';
 export {
   WRANGLER_VERSION,

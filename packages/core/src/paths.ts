@@ -43,6 +43,8 @@ export interface Layout {
   relaySecretFile: string;
   /** pid and control port of the running agent. */
   agentStateFile: string;
+  /** Where npx installed the pinned wrangler, so later runs start it without npx. */
+  wranglerStateFile: string;
 }
 
 export function createLayout(p: PathEnv, dataDirOverride?: string): Layout {
@@ -60,5 +62,7 @@ export function createLayout(p: PathEnv, dataDirOverride?: string): Layout {
     lockFile: joinPath(platform, dataDir, 'everport.lock'),
     relaySecretFile: joinPath(platform, dataDir, 'relay-secret'),
     agentStateFile: joinPath(platform, dataDir, 'agent.json'),
+    // Not "wrangler.json": wrangler reads that name as its own config in any parent folder of its working directory
+    wranglerStateFile: joinPath(platform, dataDir, 'wrangler-install.json'),
   };
 }

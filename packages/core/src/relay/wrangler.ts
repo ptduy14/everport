@@ -73,6 +73,10 @@ export function retryLostTokenRefresh(
 
 export const previewMissing = (result: CliResult): boolean => /was not found/i.test(stripAnsi(result.stderr));
 
+/** npm sometimes installs wrangler without workerd's binary for this platform: then every command dies at start. */
+export const workerdMissing = (result: CliResult): boolean =>
+  /is needed by workerd/i.test(stripAnsi(`${result.stderr}\n${result.stdout}`));
+
 /** The part of a failed run worth showing a person: the error block, not the banner and the log path. */
 export function summarizeFailure(result: CliResult): string {
   const lines = stripAnsi(result.stderr || result.stdout)
@@ -89,6 +93,13 @@ export function summarizeFailure(result: CliResult): string {
 export function wranglerError(result: CliResult, what: string): EverportError {
   if (isAuthFailure(result)) {
     return new EverportError('NOT_LOGGED_IN', 'You are not logged in to Cloudflare', 'Run "everport login".');
+  }
+  if (workerdMissing(result)) {
+    return new EverportError(
+      'WRANGLER_FAILED',
+      `wrangler failed while ${what}: npm installed it without the workerd program for this computer`,
+      'Run "everport doctor" to download it again.',
+    );
   }
   if (wranglerNeedsNewerNode(result)) {
     return new EverportError(
