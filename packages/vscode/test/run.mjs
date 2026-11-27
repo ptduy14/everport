@@ -159,5 +159,10 @@ if (survive) {
   origin.close();
 }
 
-rmSync(tmp, { recursive: true, force: true, maxRetries: 3 });
+try {
+  rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+} catch (e) {
+  // VS Code's helpers can hold files a little after exit on Windows; a leftover temp folder is not a test failure
+  console.log(`note: could not remove ${tmp}: ${e.code ?? e}`);
+}
 process.exit(failed ? 1 : 0);
