@@ -50,7 +50,7 @@ It holds `tunnels.json` (your tunnels), `relay-secret` (the shared secret betwee
 
 ## Cloudflare login and wrangler
 
-Everport talks to Cloudflare through [wrangler](https://developers.cloudflare.com/workers/wrangler/). It runs one pinned version through `npx` (currently 4.166.0), so the first command that needs it downloads wrangler, which can take about a minute. It is cached afterwards.
+Everport talks to Cloudflare through [wrangler](https://developers.cloudflare.com/workers/wrangler/). It uses one pinned version (currently 4.166.0), installed through `npx`. The first command that needs it on a computer downloads wrangler, which takes about a minute; Everport says so while it waits. It then notes where wrangler is (`wrangler-install.json` in the data folder) and starts it directly afterwards, which is faster than going through `npx` every time. If npm installed wrangler without the `workerd` program for your computer (it happens now and then), Everport removes that copy and downloads it again, once.
 
 `everport login` runs `wrangler login`, so the login happens in your browser and Wrangler keeps the credentials. Everport asks wrangler whether you are logged in; it does not read or store the login itself.
 
@@ -58,14 +58,14 @@ Everport talks to Cloudflare through [wrangler](https://developers.cloudflare.co
 
 ## Privacy and security
 
-- **Usage data.** Everport's own code makes no analytics or telemetry calls. It talks to your local agent, your local service and your own relay on Cloudflare. Wrangler, which Everport runs, can send anonymous usage data to Cloudflare unless you opt out; see Cloudflare's [system environment variables](https://developers.cloudflare.com/workers/wrangler/system-environment-variables/) (`WRANGLER_SEND_METRICS`). Everport passes your environment to wrangler unchanged.
+- **Usage data.** Everport's own code makes no analytics or telemetry calls. It talks to your local agent, your local service and your own relay on Cloudflare. Wrangler, which Everport runs, can send anonymous usage data to Cloudflare unless you opt out; see Cloudflare's [system environment variables](https://developers.cloudflare.com/workers/wrangler/system-environment-variables/) (`WRANGLER_SEND_METRICS`). Everport passes your environment to wrangler unchanged, except `WRANGLER_LOG`, which it leaves out: a debug log level makes wrangler print its log where Everport reads answers.
 - **Relay secret.** `relay-secret` is written readable only by you (mode `0600`) on macOS and Linux. Windows has no such mode, so the file is protected only by your user folder's permissions.
 - **Agent control API.** It listens on `127.0.0.1` only and every call needs a token that is generated each time the agent starts.
 - **Public URLs.** Anyone who knows a URL can reach the service behind it.
 
 ## The first tunnel takes longer
 
-The first `everport add` also creates the relay Worker in your Cloudflare account, so it takes longer than the ones after it. Everport says so while it works. In our measurements (one run each): about 17 to 24 seconds from Vietnam on Windows (about 10 seconds in a later manual try), about 70 seconds when wrangler first had to be downloaded, and 5 to 6 seconds on GitHub Actions runners, which are close to Cloudflare. Your time depends on your network. Later tunnels do not create the relay again, so they are quicker.
+The first `everport add` also creates the relay Worker in your Cloudflare account. Everport says so while it works. In our measurements from Vietnam on Windows (November 2026, several runs), `add` took 8 to 12 seconds once wrangler was on the computer (it took 22 to 26 seconds before version 1.1.0). The very first time on a computer, downloading wrangler added about 45 to 70 seconds. Your time depends on your network; machines close to Cloudflare are faster. Most of what is left is Cloudflare creating the preview (4 to 6 seconds).
 
 ## Agent lifecycle
 
@@ -115,6 +115,7 @@ Start with `everport doctor`: it checks each piece and prints a fix for every fa
 - **A tunnel shows `missing`**: its preview was lost on Cloudflare. `everport up` recreates it at the same address.
 - **A tunnel shows a health of `mismatch`**: another Worker answers at that address. Remove the tunnel and add it again.
 - **The first command takes a minute**: wrangler is downloaded once through `npx`, then cached.
+- **An error says npm installed wrangler "without the workerd program"**: Everport already tried to download it again once. Run `everport doctor`, which tries again; if it keeps failing, check your network or npm proxy settings.
 - **VS Code says it needs Node.js 22.12, but your terminal has it**: VS Code did not inherit your shell's `PATH`. See [Node.js and version managers](#nodejs-and-version-managers).
 - **An error says Wrangler requires at least Node.js v22.12.0**: the Node.js that runs wrangler is older than that. Switch to a newer Node.js, or set `everport.nodePath`.
 - **A tunnel cannot be removed because Cloudflare cannot be reached** (offline, logged out, or the Worker was deleted by hand): `everport rm <tunnel> --local`, or **Remove from List Only** in VS Code, forgets it on this computer. Its preview may stay on Cloudflare; delete it in the Cloudflare dashboard if needed.

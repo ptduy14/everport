@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+- Adding a tunnel is about twice as fast: about 10 seconds instead of more than 20 in our tests. Everport now starts Cloudflare's wrangler directly instead of through `npx` every time, checks your login while it talks to Cloudflare, and starts the background agent at the same time.
+- Fixed: the first tunnel on a new computer often failed with "wrangler failed while checking the login". Downloading wrangler now has its own time limit and its own message ("Preparing Cloudflare's wrangler…").
+- Fixed: when npm installed wrangler without the `workerd` program for your computer, every command failed. Everport now downloads it again by itself.
+- Fixed: a new tunnel could fail or show an error for a moment right after it was created, while Cloudflare was still spreading its settings.
+- In VS Code, **Add Tunnel** opens the port picker right away; the login is checked while you choose.
+- A tunnel named like your relay (for example `everport`) is no longer deployed twice.
+- Setting `WRANGLER_LOG=debug` no longer makes Everport think you are logged out.
+
 ## 1.0.1
 
 - Your local app now receives the tunnel's public host in `X-Forwarded-Host`, so redirects and absolute links can use the public URL.
