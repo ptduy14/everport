@@ -5,8 +5,19 @@ import { gzipSync } from 'node:zlib';
 import { FakeRelay } from '@everport/relay/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import { RelayAgent, type RelayAgentOptions } from './agent.js';
-import { buildTargetUrl, localErrorBody } from './connection.js';
+import {
+  DEFAULT_TIMINGS,
+  MAX_BUFFERED_BYTES,
+  SMALL_FRAME_BYTES,
+  buildTargetUrl,
+  localErrorBody,
+  mustWait,
+  pongDeadline,
+} from './connection.js';
+
 import { FAST, SECRET, readBody, silentLogger, sleep, startOrigin, waitFor, type Origin } from './testing/helpers.js';
+
+const CHUNK = 64 * 1024;
 
 const cleanup: (() => Promise<void> | void)[] = [];
 afterEach(async () => {
@@ -247,6 +258,31 @@ describe('RelayAgent: connection lifecycle', () => {
     await waitFor(() => relay.totalConnections >= 2, 4000);
   });
 
+  it('keeps a busy connection whose pongs are late, and drops it once data stops moving', async () => {
+    // A slow upload: the relay never answers pings, but the response keeps leaving the socket for 600 ms.
+    const relay = new FakeRelay({ secret: SECRET, tunnel: 'fe', autoPong: false, headTimeoutMs: 2000 });
+    const base = await relay.start();
+    cleanup.push(() => relay.stop());
+    const origin = await startService(async (_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/octet-stream' });
+      for (let i = 0; i < 20; i++) {
+        res.write(Buffer.alloc(32 * 1024, i));
+        await sleep(30);
+      }
+      res.end();
+    });
+    const agent = newAgent();
+    await agent.addTunnel({ name: 'fe', url: base, target: origin.url });
+    await waitFor(() => relay.connectedAgents === 1);
+
+    const res = await fetch(`${base}/bundle.js`);
+    expect(res.status).toBe(200);
+    expect((await res.arrayBuffer()).byteLength).toBe(20 * 32 * 1024);
+    expect(relay.totalConnections).toBe(1); // late pongs during the transfer did not end the connection
+
+    await waitFor(() => relay.totalConnections >= 2, 4000); // idle and still no pong: now it is gone
+  });
+
   it('clears its keep-alive timer when a connected tunnel is removed', async () => {
     const { relay, base } = await startRelay('fe');
     const agent = newAgent();
@@ -419,5 +455,37 @@ describe('buildTargetUrl', () => {
     ['http://127.0.0.1:3000/api/', '/users?id=7', 'http://127.0.0.1:3000/api/users?id=7'],
   ])('joins %s and %s', (target, path, expected) => {
     expect(buildTargetUrl(target, path)).toBe(expected);
+  });
+});
+
+describe('pongDeadline', () => {
+  const t = { ...DEFAULT_TIMINGS, pongTimeoutMs: 10_000, drainGraceMs: 30_000, maxPongWaitMs: 120_000 };
+
+  it('gives an idle connection the plain pong timeout', () => {
+    expect(pongDeadline(100_000, 0, t)).toBe(110_000);
+  });
+
+  it('waits while data still leaves the socket: a late pong on a slow upload is not a dead connection', () => {
+    expect(pongDeadline(100_000, 125_000, t)).toBe(155_000);
+  });
+
+  it('counts data that left just before the ping, which may still be ahead of it', () => {
+    expect(pongDeadline(100_000, 95_000, t)).toBe(125_000);
+  });
+
+  it('never waits longer than the cap', () => {
+    expect(pongDeadline(100_000, 210_000, t)).toBe(220_000);
+  });
+});
+
+describe('mustWait', () => {
+  it('holds back a large chunk while much is queued, so pings and other requests do not wait behind it', () => {
+    expect(mustWait(CHUNK, MAX_BUFFERED_BYTES + 1)).toBe(true);
+    expect(mustWait(CHUNK, MAX_BUFFERED_BYTES)).toBe(false);
+  });
+
+  it('never holds back a small frame: heads, ends and short bodies pass a long download', () => {
+    expect(mustWait(SMALL_FRAME_BYTES, 10 * MAX_BUFFERED_BYTES)).toBe(false);
+    expect(mustWait(200, 10 * MAX_BUFFERED_BYTES)).toBe(false);
   });
 });

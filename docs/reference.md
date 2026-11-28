@@ -112,6 +112,7 @@ Start with `everport doctor`: it checks each piece and prints a fix for every fa
 - **"You are not logged in to Cloudflare"**: run `everport login`, or set the API token variables.
 - **The URL answers `503 tunnel offline`**: the agent is not running. Run `everport up`.
 - **The URL answers `502` "this tunnel works, but nothing is running on localhost:…"**: your app is not running. Start it; nothing is wrong with the tunnel. Another `502` "the app on localhost:… failed to answer" means the app is running but dropped the call.
+- **Large files load slowly, or some requests answer `504` "local server did not answer in time" while a page loads**: every response is uploaded from your computer to Cloudflare, so your upload speed to `workers.dev` limits the tunnel. On some networks it is much slower than a speed test suggests: we measured 50 to 100 KB/s to the addresses `workers.dev` uses while uploads to other Cloudflare addresses ran at more than 1 MB/s. Serve built, compressed files rather than a whole project folder, and try another network to compare.
 - **A tunnel shows `missing`**: its preview was lost on Cloudflare. `everport up` recreates it at the same address.
 - **A tunnel shows a health of `mismatch`**: another Worker answers at that address. Remove the tunnel and add it again.
 - **The first command takes a minute**: wrangler is downloaded once through `npx`, then cached.

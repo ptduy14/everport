@@ -37,7 +37,15 @@ export interface TunnelStatus extends TunnelConfig {
 
 export interface Timings {
   pingIntervalMs: number;
+  /** How long an idle connection may take to answer a ping. */
   pongTimeoutMs: number;
+  /**
+   * How long a pong may still take after data last left the socket. On a slow upload the ping waits behind the
+   * response bytes already queued, so a late pong then means "busy", not "gone".
+   */
+  drainGraceMs: number;
+  /** The longest a pong may take, however busy the connection is. */
+  maxPongWaitMs: number;
   /** Delay before reconnecting after a missing pong. */
   fastReconnectMs: number;
   backoffBaseMs: number;
@@ -47,10 +55,21 @@ export interface Timings {
 export const DEFAULT_TIMINGS: Timings = {
   pingIntervalMs: 20_000,
   pongTimeoutMs: 10_000,
+  drainGraceMs: 30_000,
+  maxPongWaitMs: 120_000,
   fastReconnectMs: 300,
   backoffBaseMs: 1000,
   backoffMaxMs: 15_000,
 };
+
+/**
+ * When to give up on a ping sent at `pingAt`: `pongTimeoutMs` later on an idle connection, and up to
+ * `drainGraceMs` after data last left the socket on a busy one, never later than `maxPongWaitMs`.
+ */
+export function pongDeadline(pingAt: number, lastProgressAt: number, t: Timings): number {
+  const deadline = Math.max(pingAt + t.pongTimeoutMs, lastProgressAt + t.drainGraceMs);
+  return Math.min(deadline, pingAt + t.maxPongWaitMs);
+}
 
 export interface ConnectionDeps {
   logger: Logger;
@@ -63,8 +82,17 @@ export interface ConnectionDeps {
 
 /** Close reason the relay sends to an agent that another agent replaced. */
 const REPLACED = 'replaced';
-/** Wait before sending more when this much is queued on the socket. */
-const MAX_BUFFERED_BYTES = 1 << 20;
+/**
+ * Large response chunks wait while this much is queued on the socket. Kept small: on a slow upload every byte queued
+ * here delays the pings and the other requests behind it.
+ */
+export const MAX_BUFFERED_BYTES = 256 * 1024;
+/** Frames up to this size (heads, ends, resets, small bodies) never wait, so short requests pass long downloads. */
+export const SMALL_FRAME_BYTES = 16 * 1024;
+
+/** Whether a frame waits for the socket's queue to shrink before it is sent. */
+export const mustWait = (frameBytes: number, bufferedBytes: number): boolean =>
+  frameBytes > SMALL_FRAME_BYTES && bufferedBytes > MAX_BUFFERED_BYTES;
 
 interface ActiveRequest {
   head: RequestHead;
@@ -139,6 +167,8 @@ export class TunnelConnection {
   private readonly timings: Timings;
   private readonly random: () => number;
   private readonly now: () => number;
+  /** Bytes handed to each socket, to tell how much of it has left for the network. */
+  private readonly sentBytes = new WeakMap<WebSocket, number>();
 
   constructor(
     private readonly config: TunnelConfig,
@@ -260,6 +290,39 @@ export class TunnelConnection {
     this.requests = requests;
     let pingTimer: ReturnType<typeof setInterval> | undefined;
     let pongTimer: ReturnType<typeof setTimeout> | undefined;
+    let pingAt: number | undefined;
+    // Data that has left the socket's queue: it only moves while the relay keeps reading, so it shows life.
+    let leftQueue = 0;
+    let lastProgressAt = 0;
+    const noteProgress = () => {
+      const left = (this.sentBytes.get(ws) ?? 0) - ws.bufferedAmount;
+      if (left > leftQueue) {
+        leftQueue = left;
+        lastProgressAt = this.now();
+      }
+    };
+
+    const dropForMissingPong = () => {
+      this.markDropped(' (no answer from Cloudflare)');
+      this.current = null;
+      teardown();
+      try {
+        ws.close(1000, 'pong timeout');
+      } catch {
+        // already closed
+      }
+      this.setState('connecting', 'no pong from the relay');
+      this.scheduleReconnect(true);
+    };
+
+    const checkPong = () => {
+      pongTimer = undefined;
+      if (ws !== this.current || pingAt === undefined) return;
+      noteProgress();
+      const wait = pongDeadline(pingAt, lastProgressAt, this.timings) - this.now();
+      if (wait <= 0) return dropForMissingPong();
+      pongTimer = setTimeout(checkPong, Math.min(wait, this.timings.pongTimeoutMs));
+    };
 
     const teardown = () => {
       clearInterval(pingTimer);
@@ -282,22 +345,11 @@ export class TunnelConnection {
       }
       pingTimer = setInterval(() => {
         if (ws.readyState !== WebSocket.OPEN) return;
+        noteProgress();
         ws.send('ping');
-        if (pongTimer !== undefined) return; // an earlier ping is still waiting: do not push its deadline back
-        pongTimer = setTimeout(() => {
-          pongTimer = undefined;
-          if (ws !== this.current) return;
-          this.markDropped(' (no answer from Cloudflare)');
-          this.current = null;
-          teardown();
-          try {
-            ws.close(1000, 'pong timeout');
-          } catch {
-            // already closed
-          }
-          this.setState('connecting', 'no pong from the relay');
-          this.scheduleReconnect(true);
-        }, this.timings.pongTimeoutMs);
+        if (pingAt !== undefined) return; // an earlier ping is still waiting: its deadline stays
+        pingAt = this.now();
+        pongTimer = setTimeout(checkPong, this.timings.pongTimeoutMs);
       }, this.timings.pingIntervalMs);
     };
 
@@ -326,6 +378,7 @@ export class TunnelConnection {
         if (ev.data === 'pong') {
           clearTimeout(pongTimer);
           pongTimer = undefined;
+          pingAt = undefined;
         }
         return;
       }
@@ -334,8 +387,10 @@ export class TunnelConnection {
   }
 
   private send = async (ws: WebSocket, frame: Uint8Array): Promise<void> => {
-    while (ws.bufferedAmount > MAX_BUFFERED_BYTES && ws.readyState === WebSocket.OPEN) await sleep(2);
-    if (ws.readyState === WebSocket.OPEN) ws.send(frame);
+    while (mustWait(frame.byteLength, ws.bufferedAmount) && ws.readyState === WebSocket.OPEN) await sleep(2);
+    if (ws.readyState !== WebSocket.OPEN) return;
+    ws.send(frame);
+    this.sentBytes.set(ws, (this.sentBytes.get(ws) ?? 0) + frame.byteLength);
   };
 
   private onFrame(ws: WebSocket, requests: Map<number, ActiveRequest>, data: Uint8Array): void {

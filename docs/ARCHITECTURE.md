@@ -76,7 +76,9 @@ Text messages are only for keep-alive: the agent sends `ping`, the runtime answe
 
 **Cancelling.** If the caller goes away, the Durable Object sends `RESET` and the agent aborts its local request. On Cloudflare previews this takes about 30 seconds to reach the local service; other requests are not blocked meanwhile.
 
-**Keep-alive and hibernation.** The Durable Object answers `ping` with `pong` through the runtime's auto-response, which does not wake it. It uses the WebSocket Hibernation API, so it can sleep when idle and wake with empty memory while the socket stays open; it therefore picks the newest open agent socket each time instead of trusting memory. The agent pings every 20 s, drops a socket that misses a `pong` for 10 s and reconnects with backoff (`min(15 s, 1 s × 2^n)` with jitter).
+**Keep-alive and hibernation.** The Durable Object answers `ping` with `pong` through the runtime's auto-response, which does not wake it. It uses the WebSocket Hibernation API, so it can sleep when idle and wake with empty memory while the socket stays open; it therefore picks the newest open agent socket each time instead of trusting memory. The agent pings every 20 s and reconnects with backoff (`min(15 s, 1 s × 2^n)` with jitter) when a socket is gone. An idle socket that misses a `pong` for 10 s is gone. A busy one is not: on a slow upload the `ping` waits behind the response bytes already queued, so the agent keeps waiting while those bytes still leave the socket, and gives up 30 s after they stop moving, or 2 minutes after the `ping` at most. Dropping a busy socket would fail every request in flight with `502 agent replaced` when the agent reconnects.
+
+**Sending order.** All requests of a tunnel share its one socket. A large response chunk waits while more than 256 KiB is queued on the socket; frames of 16 KiB or less (response heads, ends, resets, short bodies) never wait, so a short request is not stuck behind a long download in the agent. Bytes already handed to the operating system still go first, so on a very slow upload a short request can still take seconds.
 
 ## The agent
 

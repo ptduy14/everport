@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- Fixed: on a slow upload, a tunnel serving large files (a JavaScript bundle, for example) kept reconnecting about every 30 seconds, and the requests in flight failed with `502 agent replaced`. The agent took a late answer to its keep-alive check for a lost connection. It now waits while the response is still being sent, and only reconnects once the connection has really stopped moving.
+- Short requests no longer wait in Everport behind a large download on the same tunnel, so they are less likely to end in `504`.
+
 ## 1.1.0
 
 - Adding a tunnel is about twice as fast: about 10 seconds instead of more than 20 in our tests. Everport now starts Cloudflare's wrangler directly instead of through `npx` every time, checks your login while it talks to Cloudflare, and starts the background agent at the same time.
