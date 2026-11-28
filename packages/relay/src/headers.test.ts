@@ -38,6 +38,19 @@ describe('header filters', () => {
     expect(names(filterFromOrigin(sample))).toEqual(['Accept-Encoding', 'Content-Type', 'Set-Cookie', 'Set-Cookie']);
   });
 
+  it('drops headers a Connection header names, and Proxy-Connection, on both sides of the agent', () => {
+    const withNamed: HeaderList = [
+      ['Connection', 'close, X-Hop-Secret'],
+      ['connection', 'X-Other-Hop'],
+      ['X-Hop-Secret', 'internal'],
+      ['x-other-hop', '1'],
+      ['Proxy-Connection', 'keep-alive'],
+      ['X-Real', 'kept'],
+    ];
+    expect(names(filterForOrigin(withNamed))).toEqual(['X-Real']);
+    expect(names(filterFromOrigin(withNamed))).toEqual(['X-Real']);
+  });
+
   it('keeps repeated headers and their order', () => {
     expect(
       filterForAgent(sample)

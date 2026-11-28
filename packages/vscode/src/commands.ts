@@ -86,7 +86,7 @@ export function registerCommands(ctx: vscode.ExtensionContext, app: App): void {
         placeHolder: `${fallback} (press Enter to use it)`,
         ignoreFocusOut: true,
         validateInput: (v) => {
-          const error = labelError(v, app.statuses, fallback);
+          const error = labelError(v, app.statuses, fallback, app.workerName);
           if (error) return error;
           const url = urlPreview(v.trim() || fallback, app.statuses, app.workerName);
           return { message: `Public URL: ${url}`, severity: vscode.InputBoxValidationSeverity.Info };

@@ -51,6 +51,13 @@ describe('name input', () => {
     expect(labelError('api', [mk()])).toContain('already used');
     expect(labelError('Web', [mk()])).toBeUndefined();
   });
+  it('refuses a name that would get the same address as another tunnel ("My App" and "my-app")', () => {
+    const existing = [mk({ label: 'my-app', name: 'my-app' })];
+    expect(labelError('My App', existing, undefined, 'everport')).toContain('same address as "my-app"');
+    expect(labelError('My Apps', existing, undefined, 'everport')).toBeUndefined();
+    expect(labelError('!!!', [mk({ name: 't-' })], undefined, 'everport')).toBeUndefined(); // random name: no clash
+  });
+
   it('treats an empty name as "use the default", which must be free too', () => {
     expect(labelError('', [mk()], '3000')).toBeUndefined();
     expect(labelError('  ', [mk({ label: '3000' })], '3000')).toContain('already used');
