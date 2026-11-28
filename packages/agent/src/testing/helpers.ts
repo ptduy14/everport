@@ -28,6 +28,8 @@ export const silentLogger: Logger = { info() {}, warn() {}, error() {} };
 export const FAST: Partial<Timings> = {
   pingIntervalMs: 40,
   pongTimeoutMs: 80,
+  drainGraceMs: 150,
+  maxPongWaitMs: 1500,
   fastReconnectMs: 20,
   backoffBaseMs: 20,
   backoffMaxMs: 100,
