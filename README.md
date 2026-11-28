@@ -19,12 +19,13 @@ Served from your own Cloudflare account. Managed from the CLI or VS Code.
 
 ---
 
+![Demo in VS Code: Add a Tunnel, pick the Live Server port 5500, name it "demo", and open the public URL, which serves the local page.](docs/everport-demo.gif)
+
 Webhook senders, OAuth providers and AI connectors store the URL you give them. When your tunnel gets a new address on every run, you re-register it everywhere, by hand, every time.
 
 Everport gives each local service its own address that **stays the same**, even after you restart your computer. Register it once with Stripe, GitHub, Google or an AI connector and never paste a new one. There is no Everport server: the relay is a small Worker in **your** Cloudflare account.
 
 <!-- TODO(media): terminal recording of the quick start (login, add, open the URL) -->
-<!-- TODO(media): screenshot or GIF of the Everport view in VS Code -->
 
 ## Quick start
 

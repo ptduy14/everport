@@ -1,5 +1,7 @@
 # Everport
 
+![Demo: Add a Tunnel, pick the Live Server port 5500, name it "demo", and open the public URL, which serves the local page.](https://raw.githubusercontent.com/ptduy14/everport/main/docs/everport-demo.gif)
+
 Give each local service a public URL that never changes, from the VS Code sidebar. The URL lives on a small relay in **your own Cloudflare account**, and the tunnels keep running after you close VS Code.
 
 Built for developers who register local services with outside platforms: webhooks, OAuth callbacks, AI connectors (tested with an app in ChatGPT). Register the URL once, never paste it again.
