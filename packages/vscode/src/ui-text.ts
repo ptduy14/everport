@@ -29,12 +29,33 @@ export function targetError(input: string): string | undefined {
 export const defaultLabel = (target: string): string => String(portOf(normalizeTarget(target)));
 
 /** With a `fallback`, an empty input means "use the fallback", so the fallback must be free too. */
-export function labelError(input: string, existing: TunnelStatus[], fallback?: string): string | undefined {
+export function labelError(
+  input: string,
+  existing: TunnelStatus[],
+  fallback?: string,
+  workerName?: string,
+): string | undefined {
   const label = input.trim() || fallback || '';
   if (!label) return 'A name is required.';
   if (existing.some((t) => t.label.toLowerCase() === label.toLowerCase()))
     return `"${label}" is already used by another tunnel.`;
+  if (workerName) {
+    // "My App" and "my-app" become the same address: say so here instead of after the add fails.
+    const name = sameAddressName(label, workerName);
+    const clash = name ? existing.find((t) => t.name === name) : undefined;
+    if (clash) return `"${label}" would get the same address as "${clash.label}". Pick another name.`;
+  }
   return undefined;
+}
+
+/** The address name a label gets, or undefined when it gets a random part and so cannot clash. */
+function sameAddressName(label: string, workerName: string): string | undefined {
+  try {
+    const name = normalizeTunnelName(label, workerName, () => '');
+    return name.endsWith('-') ? undefined : name;
+  } catch {
+    return undefined; // a relay name too long for any tunnel: the add says so
+  }
 }
 
 /**
