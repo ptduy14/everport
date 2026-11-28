@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+
+- **Add Tunnel** now warns while you type when a name would get the same address as an existing tunnel (for example "My App" and "my-app"), instead of failing after you confirm.
+- Headers that a request or response marks as hop-by-hop in its `Connection` header, and `Proxy-Connection`, are no longer passed between your app and the tunnel.
+
 ## 1.1.1
 
 - Fixed: on a slow upload, a tunnel serving large files (a JavaScript bundle, for example) kept reconnecting about every 30 seconds, and the requests in flight failed with `502 agent replaced`. The agent took a late answer to its keep-alive check for a lost connection. It now waits while the response is still being sent, and only reconnects once the connection has really stopped moving.
